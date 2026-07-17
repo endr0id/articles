@@ -15,10 +15,12 @@ const languages = ['ja', 'en'];
 // Frontmatter template
 const createTemplate = (lang) => `---
 title: ""
+description: ""
 date: "${new Date().toISOString().split('T')[0]}"
 tags: []
+author: ""
 published: false
-lang: "${lang}"
+heroImage: ""
 ---
 
 # New Post (${lang.toUpperCase()})
