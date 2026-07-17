@@ -21,6 +21,3 @@ Run the following script to generate a new post skeleton (both ja and en folders
 ```bash
 node scripts/create-post.mjs
 ```
-```
-```
-```
