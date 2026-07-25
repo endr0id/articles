@@ -59,13 +59,8 @@ function calculatePrice(
   return strategy(price);
 }
 
-const normalDiscount: DiscountStrategy = (price) => {
-    return price * 0.9;
-}
-
-const premiumDiscount: DiscountStrategy = (price) => {
-    return price * 0.8;
-}
+const normalDiscount: DiscountStrategy = (price) => price * 0.9;
+const premiumDiscount: DiscountStrategy = (price) => price * 0.8;
 ```
 
 At the caller side, you can now flexibly swap the logic like this:
