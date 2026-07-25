@@ -75,7 +75,7 @@ calculatePrice(1000, normalDiscount);
 calculatePrice(1000, premiumDiscount);
 ```
 
-This design approach—making the algorithm decoupled so it can be swapped via separate objects or functions—is called the Strategy Pattern.
+This design approach—making the algorithm decoupled so it can be swapped via separate objects or functions—is called the **Strategy Pattern**.
 
 The important takeaway here is not the name `DiscountStrategy`.
 
@@ -93,11 +93,11 @@ In software development, similar design challenges appear over and over again.
 - How to notify others of state changes
 - How to hide complex subsystems
 
-  You could solve these problems from scratch every time.
+You could solve these problems from scratch every time.
 
 However, many developers before us have faced the exact same issues and experimented with various solutions.
 
-Through this process, the knowledge of **"which structures worked best for which problems"** was organized and named. Those are **design patterns.**
+Through this process, the knowledge of **"which structures worked best for which problems"** was organized and named. Those are **design patterns**.
 
 ## Design Patterns as a "Common Vocabulary"
 
@@ -174,32 +174,32 @@ Object → Module → Application → System-wide
 
 The scale of the design target differs across patterns:
 
-1. Object Level
+1. **Object Level**
 
-    Deals with **relatively small scopes,** mainly relationships between classes, functions, and objects.
+   Deals with **relatively small scopes**, mainly relationships between classes, functions, and objects.
 
-    - Observer
-    - Strategy
-    - Factory
-    - Proxy
-    - Adapter
+   - Observer  
+   - Strategy  
+   - Factory  
+   - Proxy  
+   - Adapter
 
-2. Module / Application Level
+2. **Module / Application Level**
 
-    Deals with **larger scopes,** such as separating responsibilities within an application.
+   Deals with **larger scopes**, such as separating responsibilities within an application.
 
-    - Repository
-    - Service layer
-    - Dependency Injection
-    - MVC
+   - Repository  
+   - Service Layer  
+   - Dependency Injection  
+   - MVC
 
-3. System Level
+3. **System Level**
 
-    Deals with **entire system architectures** or interactions between multiple services.
+   Deals with **entire system architectures** or interactions between multiple services.
 
-    - Microservices
-    - Event-Driven Architecture
-    - CQRS
+   - Microservices
+   - Event-Driven Architecture
+   - CQRS
 
 ## Representative Design Patterns and Problems They Solve
 
@@ -226,10 +226,9 @@ Design patterns are **named, reusable solutions to recurring problems in softwar
 The key is not to memorize pattern names and force them into your code.
 
 💡 **Steps for Learning**
-
-1. Discover the design problem
-2. Think of a structure suitable for the problem
-3. Use known patterns as candidate solutions
+1. Discover the design problem  
+2. Think of a structure suitable for the problem  
+3. Use known patterns as candidate solutions  
 
 Design patterns are not code implementation templates, but a **body of knowledge for solving design problems.**
 
