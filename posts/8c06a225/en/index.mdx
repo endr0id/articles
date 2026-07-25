@@ -1,13 +1,230 @@
 ---
-title: ""
-description: ""
+title: "What is a Design Pattern?"
+description: "Understanding the core concepts and scope of design patterns as solutions to design problems, rather than code templates."
 date: "2026-07-17"
-tags: []
-author: ""
-published: false
+updatedDate: "2026-07-25"
+tags:
+  - "design-pattern"
+  - "GoF"
+  - "architecture"
+author: "endr0id"
+published: true
 heroImage: ""
 ---
 
-# New Post (EN)
+# What is a Design Pattern?
 
-Write your content here.
+A design pattern is **a reusable solution to a commonly occurring problem in software design.**
+
+*Note: It is not a finished code implementation or a library.*
+
+## Design Patterns are "Design Templates"
+
+For example, consider the following scenario:
+
+> "I want to perform the same task, but switch the algorithm depending on the situation."
+
+This is a problem that appears repeatedly across various systems.
+
+As a concrete example, let's look at calculating product discounts.
+
+```typescript
+function calculatePrice(
+  price: number,
+  discountType: "normal" | "premium",
+) {
+    if (discountType === "normal") {
+        return price * 0.9;
+    }
+
+    if (discountType === "premium") {
+        return price * 0.8;
+    }
+}
+```
+
+This code works.
+
+However, as the number of discount types increases, you will end up with an ever-growing chain of `if (...)` statements.
+
+To address this, let's separate the discount logic itself.
+
+```typescript
+type DiscountStrategy = (price: number) => number;
+
+function calculatePrice(
+  price: number,
+  strategy: DiscountStrategy,
+) {
+  return strategy(price);
+}
+
+const normalDiscount: DiscountStrategy = (price) => price * 0.9;
+const premiumDiscount: DiscountStrategy = (price) => price * 0.8;
+```
+
+At the caller side, you can now flexibly swap the logic like this:
+
+```typescript
+calculatePrice(1000, normalDiscount);
+calculatePrice(1000, premiumDiscount);
+```
+
+This design approach—making the algorithm decoupled so it can be swapped via separate objects or functions—is called the **Strategy Pattern**.
+
+The important takeaway here is not the name `DiscountStrategy`.
+
+💡 **The Essence**
+
+The core idea is taking the problem of "wanting to switch logic" and solving it with a structure that **"allows logic to be injected from the outside."**
+
+## Why Do We Need Design Patterns?
+
+In software development, similar design challenges appear over and over again.
+
+- How to instantiate objects
+- How to connect incompatible interfaces
+- How to dynamically switch logic
+- How to notify others of state changes
+- How to hide complex subsystems
+
+You could solve these problems from scratch every time.
+
+However, many developers before us have faced the exact same issues and experimented with various solutions.
+
+Through this process, the knowledge of **"which structures worked best for which problems"** was organized and named. Those are **design patterns**.
+
+## Design Patterns as a "Common Vocabulary"
+
+Imagine telling a fellow developer: "Let's use the Strategy Pattern here."
+
+This does not simply mean "let's create a class named Strategy."
+
+It means you are instantly sharing the design intention: "Let's separate the processing logic so we can swap concrete implementations."
+
+In other words, design patterns also serve as a **common vocabulary for sharing design problems and their solutions.**
+
+## The Purpose of Learning Design Patterns
+
+The goal of learning design patterns is **not to force your code into patterns.**
+
+You should never start a project with the goal of applying patterns, such as saying "Let's use Singleton" or "Let's use Observer."
+
+The key is to **discover the design problem first.**
+
+```text
+Discover a design problem
+   ↓
+Analyze the root cause
+   ↓
+Think of a suitable structure
+   ↓
+Use known design patterns as candidate solutions
+```
+
+For example, if you encounter the problem: "This class depends too heavily on a concrete implementation," candidate patterns might include:
+
+- Factory
+- Adapter
+- Dependency Injection
+
+Or, if you face the problem: "I need to switch logic dynamically depending on the context," candidate patterns might include:
+
+- Strategy
+- State
+
+In this way, design patterns should be used as a **toolbox of solutions for design problems.**
+
+## Focus on "Problems and Structures", Not "Names"
+
+Take a look at the following code:
+
+```typescript
+const service = new Proxy(target, {
+  get(target, property) {
+    return target[property];
+  },
+});
+```
+
+This code uses JavaScript's native `Proxy` API.
+
+However, using the `Proxy` API does not automatically mean you are using the "Proxy Pattern."
+
+```text
+Client → Proxy → Real Object
+```
+
+It is called the Proxy Pattern because it adopts the fundamental structure of **"accessing the real object through a surrogate object."**
+
+When understanding design patterns, look at **"what design problem is being solved by what structure,"** rather than "what API is being used."
+
+## Design Patterns Have "Scopes of Application"
+
+While the term "design pattern" is used broadly, not all patterns solve problems at the same scale.
+
+```text
+Object → Module → Application → System-wide
+```
+
+The scale of the design target differs across patterns:
+
+1. **Object Level**
+
+   Deals with **relatively small scopes**, mainly relationships between classes, functions, and objects.
+
+   - Observer  
+   - Strategy  
+   - Factory  
+   - Proxy  
+   - Adapter
+
+2. **Module / Application Level**
+
+   Deals with **larger scopes**, such as separating responsibilities within an application.
+
+   - Repository  
+   - Service Layer  
+   - Dependency Injection  
+   - MVC
+
+3. **System Level**
+
+   Deals with **entire system architectures** or interactions between multiple services.
+
+   - Microservices
+   - Event-Driven Architecture
+   - CQRS
+
+## Representative Design Patterns and Problems They Solve
+
+Design patterns are easiest to understand when categorized by **"what problem they are trying to solve."**
+
+| Problem to Solve | Representative Pattern |
+| --- | --- |
+| Hide object instantiation logic | Factory |
+| Restrict object instantiation to a single instance | Singleton |
+| Convert an existing interface into another format | Adapter |
+| Add responsibilities to objects dynamically | Decorator |
+| Provide a simplified interface to a complex subsystem | Facade |
+| Provide a surrogate or placeholder for another object | Proxy |
+| Swap algorithms dynamically | Strategy |
+| Notify other objects of state changes | Observer |
+| Alter behavior when internal state changes | State |
+| Pass requests along a chain of handlers | Chain of Responsibility |
+| Pass dependent objects from the outside | Dependency Injection |
+
+## Conclusion
+
+Design patterns are **named, reusable solutions to recurring problems in software design.**
+
+The key is not to memorize pattern names and force them into your code.
+
+💡 **Steps for Learning**
+1. Discover the design problem  
+2. Think of a structure suitable for the problem  
+3. Use known patterns as candidate solutions  
+
+Design patterns are not code implementation templates, but a **body of knowledge for solving design problems.**
+
+When learning them, ask **"What problem does this structure solve?"** rather than "What is this pattern?" This perspective will help you truly grasp the essence of design patterns.
