@@ -37,7 +37,7 @@ function calculatePrice(
     if (discountType === "premium") {
         return price * 0.8;
     }
-}
+};
 ```
 
 この方法でも動作します。
@@ -54,15 +54,10 @@ function calculatePrice(
   strategy: DiscountStrategy,
 ) {
   return strategy(price);
-}
+};
 
-const normalDiscount: DiscountStrategy = (price) => {
-    return price * 0.9;
-}
-
-const premiumDiscount: DiscountStrategy = (price) => {
-    return price * 0.8;
-}
+const normalDiscount: DiscountStrategy = (price) => price * 0.9;
+const premiumDiscount: DiscountStrategy = (price) => price * 0.8;
 ```
 
 使用側では、次のように処理方法を柔軟に差し替えられます。
