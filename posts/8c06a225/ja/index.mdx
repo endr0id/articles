@@ -110,7 +110,7 @@ calculatePrice(1000, premiumDiscount);
 しかし、過去に多くの開発者が同じような問題に遭遇し、様々な解決方法を考えてきました。
 
 その中で
-> この問題には、このような構造が有効だった
+> 「この問題にはこのような構造が有効だった」
 
 という知識が整理され、名前が付けられています。
 
@@ -139,27 +139,20 @@ calculatePrice(1000, premiumDiscount);
 
 例えば
 
-> 「Singletonを使おう」
->
-> 「Factoryを使おう」
->
+> 「Singletonを使おう」  
+> 「Factoryを使おう」  
 > 「Observerを使おう」
 
 の様な最初からパターンを適用することが目的ではありません。
 
 重要なのはまず設計上の問題を発見することです。
 
-> 設計上の問題を発見する
->
->     ↓
->
-> 問題の原因を考える
->
->     ↓
->
-> 適切な構造を考える
->
->     ↓
+> 設計上の問題を発見する  
+>     ↓  
+> 問題の原因を考える  
+>     ↓  
+> 適切な構造を考える  
+>     ↓  
 > 既知のデザインパターンを解決策の候補として利用する
 
 という流れで
@@ -203,14 +196,10 @@ const service = new Proxy(target, {
 
 本質的には
 
-> Client
->
->   ↓
->
-> Proxy
->
->   ↓
->
+> Client  
+>   ↓  
+> Proxy  
+>   ↓  
 > Real Object
 
 という
@@ -231,54 +220,38 @@ const service = new Proxy(target, {
 
 ただし、全てのパターンが同じ範囲の問題を解決するわけではありません。
 
-> オブジェクト
->
->    ↓
->
-> モジュール
->
->    ↓
->
-> アプリケーション
->
->    ↓
->
+> オブジェクト  
+>    ↓  
+> モジュール  
+>    ↓  
+> アプリケーション  
+>    ↓  
 > システム全体
 
 の様に対象とする範囲が異なります。
 
 ### オブジェクトレベル
-> Observer
->
-> Strategy
->
-> Factory
->
-> Proxy
->
+> Observer  
+> Strategy  
+> Factory  
+> Proxy  
 > Adapter
 
 などは主にオブジェクトやクラス、関数の関係を扱います。
 
-> Object A
->
->    ↓
->
-> Object B
+> Object A  
+>    ↓  
+> Object B  
 
 のような比較的小さな範囲の設計問題です。
 
 ### モジュール・アプリケーションレベル
 一方で
 
-> Module
->
-> Repository
->
-> Service Layer
->
-> Dependency Injection
->
+> Module  
+> Repository  
+> Service Layer  
+> Dependency Injection  
 > MVC
 
 などはより大きな範囲の設計を扱います。
@@ -303,14 +276,10 @@ const service = new Proxy(target, {
 
 などは複数のサービスやシステム全体の構成を扱います。
 
-> Service A
->
->    ↓
->
-> Service B
->
->    ↓
->
+> Service A  
+>    ↓  
+> Service B  
+>    ↓  
 > Service C
 
 の様なより大きな設計問題です。
@@ -343,24 +312,18 @@ const service = new Proxy(target, {
 
 ただし、重要なのは
 
-> パターン名を覚える
->
->      ↓
->
+> パターン名を覚える  
+>      ↓  
 > コードをパターンに当てはめる
 
 ことではありません。
 
 むしろ
 
-> 設計上の問題を発見する
->
->       ↓
->
-> 問題に適した構造を考える
->
->       ↓
->
+> 設計上の問題を発見する  
+>       ↓  
+> 問題に適した構造を考える  
+>       ↓  
 > 既知のパターンを解決策の候補として利用する
 
 ことが重要です。
