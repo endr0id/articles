@@ -166,39 +166,39 @@ Client → Proxy → Real Object
 
 1. オブジェクトレベル
 
-主にクラスや関数、オブジェクト同士の関係といった**比較的小さな範囲**を扱います。
+    主にクラスや関数、オブジェクト同士の関係といった**比較的小さな範囲**を扱います。
 
-- Observer  
-- Strategy  
-- Factory  
-- Proxy  
-- Adapter
+    - Observer  
+    - Strategy  
+    - Factory  
+    - Proxy  
+    - Adapter
 
 2. モジュール・アプリケーションレベル
 
-アプリケーション内の責務（役割）を分離するような、**より大きな範囲**を扱います。
+    アプリケーション内の責務（役割）を分離するような、**より大きな範囲**を扱います。
 
-- Repository  
-- Service Layer  
-- Dependency Injection  
-- MVC
-
-> Application  
-> ┣━ Controller  
-> ┣━ Service  
-> ┗━ Repository  
+    - Repository  
+    - Service Layer  
+    - Dependency Injection  
+    - MVC
+    
+    > Application  
+    > ┣━ Controller  
+    > ┣━ Service  
+    > ┗━ Repository  
 
 3. システムレベル
 
-複数のサービスや**システム全体の構造**を扱います。
+    複数のサービスや**システム全体の構造**を扱います。
 
-- Microservices
-- Event-Driven Architecture
-- CQRS
-
-```text
-Service A → Service B → Service C
-```
+    - Microservices
+    - Event-Driven Architecture
+    - CQRS
+    
+    ```text
+    Service A → Service B → Service C
+    ```
 
 ## 代表的なデザインパターンと解決する問題
 デザインパターンは「どの様な問題を解決するためのパターンなのか」という視点で整理すると理解しやすくなります。
