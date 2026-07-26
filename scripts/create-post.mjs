@@ -17,7 +17,8 @@ const createTemplate = (lang) => `---
 title: ""
 description: ""
 date: "${new Date().toISOString().split('T')[0]}"
-tags: []
+tags:
+  -
 author: ""
 published: false
 heroImage: ""
