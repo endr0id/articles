@@ -9,6 +9,54 @@ published: false
 heroImage: ""
 ---
 
-# New Post (EN)
+# What is the Singleton Pattern?
 
-Write your content here.
+The Singleton Pattern is **creational pattern that restricts the instantiation of a class to a single instance and provides a global point of access to that instance**.
+
+It is used to centrally manage resources such as application configuration and loggers that should be shared across the application.
+
+However, there are trade-offs including reduced test isolation and increased implicit dependencies, so alternatives such as DI containers should be considered.
+
+## Why is Singleton Needed?
+
+Consider the following situation:
+
+> "We need a class to manage application configuration, but if multiple instances are created, the configuration might become inconsistent."
+
+This problem occurs in various scenarios such as configuration management, logging, database connection pools, and more.
+
+### Problematic Code
+
+### Solution with Singleton Pattern
+
+## When and Where to Use It?
+
+## When NOT to Use It?
+
+### Using as a Global Variable Replacement
+
+### Using Just to Have One Instance
+
+### Managing Per-User or Per-Request State on Server-Slide
+
+## Considerations When Using Singleton
+
+### Testing Becomes Difficult
+
+### Increases Implicit Dependencies
+
+## Implementation Variations
+
+### Eager Initialization
+
+### Module Pattern
+
+## Alternatives
+
+### Dependency Injection (DI)
+
+### Factory Pattern
+
+### Service Locator
+
+## Summary
