@@ -27,25 +27,251 @@ This problem occurs in various scenarios such as configuration management, loggi
 
 ### Problematic Code
 
+With a regular class, instances can be created multiple times.
+
+```typescript
+class AppConfig {
+  private theme: string = "light";
+
+  setTheme(theme: string) {
+      this.theme = theme;
+  }
+
+  getTheme(): string {
+    return this.theme;
+  }
+}
+
+// Problem: Multiple instances are created
+const config1 = new AppConfig();
+config1.setTheme("dark");
+
+const config2 = new AppConfig();
+console.log(config2.getTheme()); // "light" (config1's setting is not reflected)
+```
+
+This example has the following problems:
+
+- Multiple instances exist independently
+- Configuration changes are not shared
+- It's unclear which instance holds the "correct configuration"
+
 ### Solution with Singleton Pattern
+
+Restrict instances to one.
+
+```typescript
+class AppConfig {
+  private static instance: AppConfig;
+  private theme: string = "light";
+
+  // Make constructor private to prevent external instantiation
+  private constructor() {}
+
+  static getInstance(): AppConfig {
+    if (!AppConfig.instance) {
+      AppConfig.instance = new AppConfig();
+    }
+    return AppConfig.instance;
+  }
+
+  setTheme(theme: string) {
+      this.theme = theme;
+  }
+
+  getTheme(): string {
+    return this.theme;
+  }
+}
+
+// Usage
+const config1 = AppConfig.getInstance();
+config1.setTheme("dark");
+
+const config2 = AppConfig.getInstance();
+console.log(config2.getTheme()); // "dark" (references the same instance)
+
+console.log(config1 === config2); // true
+```
+
+This implementation guarantees the following:
+
+- `getInstance()` always returns the same instance
+- The constructor is `private`, preventing external `new` calls
+- Configuration is shared across the entire application
+
+💡 Essence
+
+The essence of the Singleton Pattern is not "restricting instances to one."
+
+It is "providing a consistent access method to state or resources that should be shared across the entire application."
 
 ## When and Where to Use It?
 
+The Singleton Pattern is effective in the following cases:
+
+| Use Case | Reason |
+| --- | --- |
+| Application configuration | Configuration should be singular |
+| Logger | Unify log output destination |
+| Database connection pool | Centrally manage connection resources |
+| Cache management | Share cache state |
+
+However, avoid using it when there is no requirement for "being unique."
+
 ## When NOT to Use It?
+
+Using singleton for the following reason is incorrect.
 
 ### Using as a Global Variable Replacement
 
+```typescript
+// ❌ Bad example: Using Singleton as a replacement for global variables
+class GlobalState {
+  private static instance: GlobalState;
+  public userData: any;
+  public appState: any;
+
+  // ...
+}
+```
+
+This usage has the following problems:
+
+- Unclear responsibilities
+- Difficult to test
+- Increases implicit dependencies
+
+💡 Principle
+
+Do not use Singleton just because you "want global access."
+
+Required objects should be passed explicitly via Dependency Injection (DI)
+
 ### Using Just to Have One Instance
+
+```typescript
+// ❌ Bad example: Making it a Singleton without reason
+class UserService {
+  private static instance: UserService;
+
+  private constructor() {}
+
+  static getInstance(): UserService {
+    if (!UserService.instance) {
+      UserService.instance = new UserService();
+    }
+    return UserService.instance;
+  }
+
+  getInstance(id: string) {
+    // ...
+  }
+}
+```
+
+This implementation has the following problems:
+
+- Cannot replace with mocks during testing
+- Shared state can cause unexpected side effects
+- Difficult to change when multiple instances become necessary
+
+Implementing as a regular class and managing lifecycle with a DI container is more flexible.
 
 ### Managing Per-User or Per-Request State on Server-Slide
 
+In long-running server processes like Node.js, Singleton state is unintentionally shared.
+
+```typescript
+// ❌ Dangerous: Managing user state with Singleton on server-side
+class UserSession {
+  private static instance: UserSession;
+  private currentUser: User | null = null;
+
+  static getInstance(): UserSession {
+    if (!UserSession.instance) {
+      UserSession.instance = new UserSession();
+    }
+    return UserSession.instance;
+  }
+
+  setCurrentUser(user: User) {
+    this.currentUser = user; // Shared across multiple requests
+  }
+}
+```
+
+Problems with this implementation:
+
+- The same instance is shared across multiple requests
+- User B's data can leak into User A's request
+- Causes critical security issues
+
+On the server-side, manage state per request:
+
+```typescript
+// ✅ Correct: Manage state per request
+app.use((req, res, next) => {
+  req.UserSession = new UserSession(); // New instance per request
+  next();
+})
+```
+
 ## Considerations When Using Singleton
+
+Even when adopting Singleton, you need to understand the following trade-offs.
 
 ### Testing Becomes Difficult
 
+Since Singleton shares state, state may persist between tests.
+
+```typescript
+// Test code
+describe("AppConfig", () => {
+  it("test 1", () => {
+    const config = AppConfig.getInstance();
+    config.setTheme("dark");
+    expect(config.getTheme()).toBe("light"); // Fails
+  });
+});
+```
+
+Countermeasures include:
+
+- Provide a method to reset the instance for each test
+- Use the module pattern and replace with mocks during testing
+- Manage lifecycle using a DI container
+
 ### Increases Implicit Dependencies
 
+Since Singleton is "accessible from anywhere," dependencies become less visible.
+
+```typescript
+class OrderService {
+  processOrder(order: Order) {
+    // Implicit dependency: depends on AppConfig but doesn't appear in constructor
+    const config = AppConfig.getInstance();
+    // ...
+  }
+}
+```
+
+Explicitly passing dependencies makes the code's intent clearer.
+
+```typescript
+class OrderService {
+  // Dependencies are explicit
+  constructor(private config: AppConfig) {}
+
+  processOrder(order: Order) {
+    // ...
+  }
+}
+```
+
 ## Implementation Variations
+
+When implementing Singleton, there are multiple approaches depending on the environment and requirements.
 
 ### Eager Initialization
 
