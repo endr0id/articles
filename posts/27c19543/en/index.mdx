@@ -275,14 +275,117 @@ When implementing Singleton, there are multiple approaches depending on the envi
 
 ### Eager Initialization
 
+Create the instance when the class is loaded.
+
+```typescript
+class Logger {
+  private static instance: Logger = new Logger();
+
+  private constructor() {}
+
+  static getInstance(): Logger {
+    return Logger.instance;
+  }
+
+  log(message: string) {
+    console.log(`[LOG] ${message}`);
+  }
+}
+```
+
+This approach has the following characteristics:
+
+- The instance is created when the class is loaded
+- Simple `getInstance()` implementation
+- Thread-safe in multi-threaded environments
+
 ### Module Pattern
+
+**In TypeScript/JavaScript**, using the module system is recommended.
+
+```typescript
+// config.ts
+class AppConfig {
+  private theme: string = "light";
+
+  setTheme(theme: string) {
+    this.theme = theme;
+  }
+
+  getTheme(): string {
+    return this.theme;
+  }
+}
+
+export const appConfig = new AppConfig();
+```
+
+```typescript
+// Usage
+import { appConfig } from "./config";
+
+appConfig.setTheme("dark");
+```
+
+The benefits of this approach are:
+
+- **ES Module specification guarantees that a module is evaluated exactly once**
+- Simpler class implementation
+- Easier to replace with mocks during testing
+
+※ This approach is language-specific and does not apply to Java, Kotlin, C#, etc.
 
 ## Alternatives
 
+Instead of the Singleton Pattern, consider the following patterns and approaches.
+
 ### Dependency Injection (DI)
+
+Using DI containers allows you to manage instance lifecycles externally.
+
+**Benefits:**
+
+- No need to make the class itself a Singleton
+- Easy to replace with mocks during testing
+- Flexible lifecycle management (Singleton, Transient, Scoped, etc.)
+
+Each language has its own DI frameworks and libraries.
 
 ### Factory Pattern
 
+Delegating instance creation to a factory provides flexibility in creation methods.
+
+**Benefits:**
+
+- Encapsulates creation logic
+- Easy to change to multiple instances in the future
+- Can replace with test factories
+
 ### Service Locator
 
+Provides a registry to centrally manage multiple services.
+
+**Benefits:**
+
+- Unified management of multiple singleton objects
+- Centralized dependency resolution
+
+**Considerations:**
+
+- Like Singleton, can increase implicit dependencies
+- DI pattern is often preferred
+
 ## Summary
+
+The Singleton Pattern is "a creational pattern that restricts instances to one and provides a global point of access."
+
+💡 **Key Points**
+
+1. **Identify use cases** - Use only for resources or state that should be shared across the application
+2. **Not a global variable replacement** - Do not use just because you "want access from anywhere"
+3. **Trade-off with test isolation** - Understand that state sharing makes testing difficult
+4. **Consider alternatives** - Evaluate whether DI containers or Factory Pattern can provide more flexibility
+
+Singleton is a powerful pattern, but overuse reduces maintainability.
+
+Always consider whether "an instance really needs to be singular" and "whether it can be resolved with DI."
