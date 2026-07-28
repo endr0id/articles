@@ -1,0 +1,395 @@
+---
+title: "Singletonとは?"
+description: "アプリ全体で唯一のインスタンスを保証し、状態を一元管理する設計手法"
+date: "2026-07-27"
+updatedDate: "2026-07-29"
+tags:
+  - "design-pattern"
+  - "GoF"
+  - "architecture"
+author: "endr0id"
+published: true
+heroImage: "singleton.svg"
+---
+
+# Singletonパターンとは？
+
+Singletonパターンはインスタンスを1つに制限し、グローバルなアクセスポイントを提供する生成パターンです。
+
+アプリケーション設定やロガーなど、全体で共有すべきリソースの一元管理に使用します。
+
+ただし、テスト容易性の低下や暗黙的な依存関係の増加というトレードオフがあるため、DIコンテナなどの代替を検討すべきです。
+
+## なぜSignaletonが必要なのか
+
+次の様な状況を考えてみます。
+
+> 「アプリケーション設定を管理するクラスが必要だが、複数のインスタンスが作られると設定が矛盾する可能性がある」
+
+この問題は、設定管理、ロガー、データベース接続プールなど、様々な場面で発生します。
+
+### 問題のあるコード
+
+通常のクラスでは何度でもインスタンスを生成できます。
+
+```typescript
+class AppConfig {
+  private theme: string = "light";
+
+  setTheme(theme: string) {
+      this.theme = theme;
+  }
+
+  getTheme(): string {
+    return this.theme;
+  }
+}
+
+// 問題: 複数のインスタンスが作られる
+const config1 = new AppConfig();
+config1.setTheme("dark");
+
+const config2 = new AppConfig();
+console.log(config2.getTheme()); // "light" (config1の設定が反映されていない)
+```
+
+この例では次の問題があります。
+
+- 複数のインスタンスが独立して存在する
+- 設定の変更が共有されない
+- どのインスタンスが「正しい設定」を持つか不明
+
+### Singletonパターンによる解決
+
+インスタンスを1つに制限します。
+
+```typescript
+class AppConfig {
+  private static instance: AppConfig;
+  private theme: string = "light";
+
+  // コンストラクタをprivateにして外部からのnewを禁止
+  private constructor() {}
+
+  static getInstance(): AppConfig {
+    if (!AppConfig.instance) {
+      AppConfig.instance = new AppConfig();
+    }
+    return AppConfig.instance;
+  }
+
+  setTheme(theme: string) {
+      this.theme = theme;
+  }
+
+  getTheme(): string {
+    return this.theme;
+  }
+}
+
+// 使用例
+const config1 = AppConfig.getInstance();
+config1.setTheme("dark");
+
+const config2 = AppConfig.getInstance();
+console.log(config2.getTheme()); // "dark" (同じインスタンスを参照)
+
+console.log(config1 === config2); // true
+```
+
+この実装では次のことが保証されます。
+
+- `getInstance()` は常に同じインスタンスを返す
+- コンストラクタが `private` なので外部から `new` できない
+- アプリケーション全体で設定が共有される
+
+💡 本質
+
+Singletonパターンの本質は「インスタンスを1つに制限すること」ではありません。
+
+「アプリケーション全体で共有すべき状態やリソースへの一貫したアクセス方法を提供する」です。
+
+## いつ、どこで使うか？
+
+Singletonパターンは次の様な場合に有効です。
+
+| 使用場面 | 理由 |
+| --- | --- |
+| アプリケーション設定 | 設定は1つであるべき |
+| ロガー | ログの出力先を統一したい |
+| データベース接続プール | 接続リソースを一元管理したい |
+| キャッシュ管理 | キャッシュの状態を共有したい |
+
+ただし「唯一である」という要件がない場合は使用を避けます。
+
+## いつ使わないか？
+
+次のような理由でSingletonを使うのは誤りです。
+
+### グローバル変数の代替として使う
+
+```typescript
+// ❌ 悪い例: グローバル変数の代わりにSingletonを使う
+class GlobalState {
+  private static instance: GlobalState;
+  public userData: any;
+  public appState: any;
+
+  // ...
+}
+```
+
+この使い方には次の問題があります。
+
+- 責務が不明確になる
+- テストが困難になる
+- 暗黙的な依存関係が増える
+
+💡 原則
+
+「グローバルにアクセスしたい」という理由だけでSingletonを使わないこと。
+
+必要なオブジェクトは明示的に依存性注入（DI）で渡すべきです。
+
+### インスタンスを1つにしたいだけで使う
+
+```typescript
+// ❌ 悪い例: 特に理由なくSingletonにする
+class UserService {
+  private static instance: UserService;
+
+  private constructor() {}
+
+  static getInstance(): UserService {
+    if (!UserService.instance) {
+      UserService.instance = new UserService();
+    }
+    return UserService.instance;
+  }
+
+  getInstance(id: string) {
+    // ...
+  }
+}
+```
+
+この実装には次の問題があります。
+
+- テスト次にモックに差し替えられない
+- 状態が共有されることで予期しない副作用が起きる
+- 複数のインスタンスが必要になった時に変更が困難
+
+通常のクラスとして実装し、DIコンテナでライフサイクルを管理する方が柔軟です。
+
+### サーバーサイドでユーザーごと・リクエストごとの状態を管理する
+
+Node.jsなどの長時間稼働するサーバープロセスでは、Singletonの状態が意図せず共有されます。
+
+```typescript
+// ❌ 危険: サーバーサイドでユーザー状態をSingletonで管理
+class UserSession {
+  private static instance: UserSession;
+  private currentUser: User | null = null;
+
+  static getInstance(): UserSession {
+    if (!UserSession.instance) {
+      UserSession.instance = new UserSession();
+    }
+    return UserSession.instance;
+  }
+
+  setCurrentUser(user: User) {
+    this.currentUser = user; // 複数のリクエストで共有されてしまう
+  }
+}
+```
+
+この実装の問題点：
+
+- 複数のリクエストで同じインスタンスが共有される
+- ユーザーAのリクエスト中にユーザーBのデータが混入する
+- セキュリティ常の重大な問題を引き起こす
+
+サーバーサイドでは次のようにリクエストごとに状態を管理します。
+
+```typescript
+// ✅ 正しい: リクエストごとに状態を管理
+app.use((req, res, next) => {
+  req.UserSession = new UserSession(); // リクエストごとに新しいインスタンス
+  next();
+})
+```
+
+## 使う場合の注意点
+
+Singletonを採用する場合でも、次のトレードオフを理解しておく必要があります。
+
+### テストが困難になる
+
+Singletonは状態を共有するため、テスト間で状態が残ります。
+
+```typescript
+// テストコード
+describe("AppConfig", () => {
+  it("test 1", () => {
+    const config = AppConfig.getInstance();
+    config.setTheme("dark");
+    expect(config.getTheme()).toBe("light"); // Singletonは状態を共有するため
+  });
+});
+```
+
+対策として次の方法があります。
+
+- テストごとにインスタンスをリセットするメソッドを用意する
+- モジュールパターンを使い、テスト次にモックに差し替える
+- DIコンテナを使ってライフサイクルを管理する
+
+### 暗黙的な依存関係が増える
+
+Singletonは「どこからでもアクセスできる」ため、依存関係が見えにくくなります。
+
+```typescript
+class OrderService {
+  processOrder(order: Order) {
+    // 暗黙的な依存: AppConfigに依存しているが、コンストラクタには現れない
+    const config = AppConfig.getInstance();
+    // ...
+  }
+}
+```
+
+明示的に依存関係を渡す方が、コードの意図が明確になります。
+
+```typescript
+class OrderService {
+  // 依存関係が明示的
+  constructor(private config: AppConfig) {}
+
+  processOrder(order: Order) {
+    // ...
+  }
+}
+```
+
+## 実装のバリエーション
+
+Singletonを実装する場合、環境や要件に応じて複数の方法があります。
+
+### Eager Initialization (即座に初期化)
+
+インスタンスをクラス読み込みじに生成します。
+
+```typescript
+class Logger {
+  private static instance: Logger = new Logger();
+
+  private constructor() {}
+
+  static getInstance(): Logger {
+    return Logger.instance;
+  }
+
+  log(message: string) {
+    console.log(`[LOG] ${message}`);
+  }
+}
+```
+
+この方法の特徴は次の通りです。
+
+- インスタンスがクラス読み込み時に作られる
+- `getInstance()` の実装がシンプル
+- マルチスレッド環境でも安全
+
+### Module Pattern (モジュールパターン)
+
+**TypeScript/JavaScriptでは**、モジュールシステムを使う方法が推奨されます。
+
+```typescript
+// config.ts
+class AppConfig {
+  private theme: string = "light";
+
+  setTheme(theme: string) {
+    this.theme = theme;
+  }
+
+  getTheme(): string {
+    return this.theme;
+  }
+}
+
+export const appConfig = new AppConfig();
+```
+
+```typescript
+// 使用側
+import { appConfig } from "./config";
+
+appConfig.setTheme("dark");
+```
+
+この方法の利点は次の通りです。
+
+- ESモジュール使用がモジュールを1回だけ評価することを保証
+- モジュールが自動的にシングルトンとして機能する
+- クラスの実装がシンプル
+- テスト時にモックに差し替えやすい
+
+※この方法は言語固有の機能であり、Java, Kotlin, C#などでは該当しません。
+
+## 代替手段
+
+Singletonパターンの代わりに、以下のパターンやアプローチを検討すべきです。
+
+### 依存性注入 (Dependency Injection)
+
+DIコンテナを使うことで、インスタンスのライフサイクルを外部から管理できます。
+
+利点:
+
+- クラス自体をSingletonにする必要がない
+- テスト時にモックへの差し替えが容易
+- ライフサイクルを柔軟に変更可能 (Singleton, Transient, Scopedなど)
+
+各言語には専用のDIフレームワーク・ライブラリが存在します。
+
+### ファクトリパターン (Factory Pattern)
+
+インスタンスの生成をファクトリに委譲することで、生成方法を柔軟にできます。
+
+利点:
+
+- 生成ロジックをカプセル化
+- 将来的に複数インスタンスへの変更が容易
+- テスト用のファクトリへの差し替えが可能
+
+### サービスロケーター (Service Locator)
+
+複数のサービスを一元管理するレジストリを用意します。
+
+利点:
+
+- 複数のシングルトンオブジェクトを統一的に管理
+- 依存関係の解決を集約
+
+注意点:
+
+- Singletonと同様に暗黙的な依存関係が増える可能性がある
+- DIパターンの方が推奨される場合が多い
+
+## まとめ
+
+Singletonパターンは「インスタンスを1つに制限し、グローバルなアクセスポイントを提供する生成パターン」です。
+
+💡 重要なポイント
+
+1. 使用場所を見極める - アプリケーション全体で共有すべきリソースや状態にのみ使用する
+2. グローバル変数の代替ではない - 「どこからでもアクセスしたい」という理由だけで使わない
+3. テスト容易性とのトレードオフ - 状態の共有によりテストが困難になることを理解する
+4. 代替手段を検討 - DIコンテナやファクトリパターンで柔軟性を確保できないか検討する
+
+Singletonは強力なパターンですが、過度に使用すると保守性が低下します。
+
+「本当にインスタンスが1つである必要があるか」「DIで解決できないか」を常に検討すべきです。
