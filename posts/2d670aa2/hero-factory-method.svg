@@ -4,9 +4,9 @@
 <svg
    version="1.1"
    id="svg1"
-   width="58.664551"
-   height="57.750305"
-   viewBox="0 0 58.664551 57.750305"
+   width="1376"
+   height="768"
+   viewBox="0 0 1376 768"
    sodipodi:docname="factory-method.png"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -27,8 +27,8 @@
     <inkscape:page
        x="0"
        y="0"
-       width="58.664551"
-       height="57.750305"
+       width="1376"
+       height="768"
        id="page2"
        margin="0"
        bleed="0" />
@@ -36,8 +36,7 @@
   <g
      inkscape:groupmode="layer"
      inkscape:label="Image"
-     id="g1"
-     transform="translate(-1228.7554,-621.99646)">
+     id="g1">
     <image
        width="1376"
        height="768"
@@ -47,12 +46,9 @@
     <rect
        style="fill:#0d0e12"
        id="rect1"
-       width="58.664536"
-       height="57.750286"
-       x="1228.7554"
-       y="621.99646"
-       inkscape:export-filename="../apps/articles/posts/2d670aa2/rect1.png"
-       inkscape:export-xdpi="96"
-       inkscape:export-ydpi="96" />
+       width="58.675793"
+       height="54.459568"
+       x="1228.6781"
+       y="622.77148" />
   </g>
 </svg>
