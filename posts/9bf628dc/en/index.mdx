@@ -8,10 +8,290 @@ tags:
   - "GoF"
   - "architecture"
 author: "endr0id"
-published: false
+published: true
 heroImage: ""
 ---
 
-# New Post (EN)
+# What is the Abstract Factory Pattern?
 
-Write your content here.
+The Abstract Factory Pattern is a creational pattern that creates families of related objects without specifying their concrete classes.
+
+It generates multiple related objects together and guarantees their consistency.
+
+## Why is Abstract Factory Needed?
+
+Consider the following situation:
+
+> We are developing a UI component library that needs to support both Light and Dark themes.
+> Each theme requires multiple components like Button, Checkbox, and Input, but we want to maintain visual consistency within each theme.
+
+This problem occurs in various scenarios such as OS-specific widgets, database driver sets, and file format output.
+
+### Problematic Code
+
+Using individual Factories cannot guarantee consistency between objects.
+
+```typescript
+// Individual Factory Pattern
+class ButtonFactory {
+  static create(theme: string): Button {
+    return theme === "light" ? new LightButton() : new DarkButton();
+  }
+}
+
+class CheckboxFactory {
+  static create(theme: string): Checkbox {
+    return theme === "light" ? new LightCheckbox() : new DarkCheckbox();
+  }
+}
+
+// Problem: Mistakes in theme specification break consistency
+const button = ButtonFactory.create("light");
+const checkbox = CheckboxFactory.create("dark"); // Mixed!
+```
+
+This example has the following problems:
+
+- Generating each component individually does not guarantee theme consistency
+- Client code needs to call multiple Factories
+- Need to modify client code every time a new component is added
+
+### Solution with Abstract Factory Pattern
+
+Define a Factory that creates related objects together.
+
+```typescript
+// Abstract Products
+interface Button {
+  render(): void;
+}
+
+interface Checkbox {
+  render(): void;
+}
+
+// Concrete Products: Light Theme
+class LightButton implements Button {
+  render() {
+    console.log("Light Button");
+  }
+}
+
+class LightCheckbox implements Checkbox {
+  render() {
+    console.log("Light Checkbox");
+  }
+}
+
+// Concrete Products: Dark Theme
+class DarkButton implements Button {
+  render() {
+    console.log("Dark Button");
+  }
+}
+
+class DarkCheckbox implements Checkbox {
+  render() {
+    console.log("Dark Checkbox");
+  }
+}
+
+// Abstract Factory
+interface UIFactory {
+  createButton(): Button;
+  createCheckbox(): Checkbox;
+}
+
+// Concrete Factory: Light Theme
+class LightUIFactory implements UIFactory {
+  createButton(): Button {
+    return new LightButton();
+  }
+
+  createCheckbox(): Checkbox {
+    return new LightCheckbox();
+  }
+}
+
+// Concrete Factory: Dark Theme
+class DarkUIFactory implements UIFactory {
+  createButton(): Button {
+    return new DarkButton();
+  }
+
+  createCheckbox(): Checkbox {
+    return new DarkCheckbox();
+  }
+}
+
+// Client code
+function renderUI(factory: UIFactory) {
+  const button = factory.createButton();
+  const checkbox = factory.createCheckbox();
+
+  button.render();
+  checkbox.render();
+}
+
+// Usage: Theme consistency is guaranteed
+const lightFactory = new LightUIFactory();
+renderUI(lightFactory);
+// Output: Light Button, Light Checkbox
+
+const darkFactory = new DarkUIFactory();
+renderUI(darkFactory);
+// Output: Dark Button, Dark Checkbox
+```
+
+This implementation provides the following improvements:
+
+- Can create all related objects with one Factory
+- Theme consistency is guaranteed (all Light components for Light theme)
+- Client code depends only on Factory interface
+- When adding new themes, just create new Factory class without modifying client code
+
+💡 **Essence**
+
+The essence of the Abstract Factory Pattern is not about "creating multiple objects.
+
+It is **"creating families of related objects while maintaining their consistency."**
+
+## Differences from Factory Method
+
+Abstract Factory and Factory Method are similar but have different purposes and structures.
+
+| Aspect | Abstract Factory | Factory Method |
+| --- | --- | --- |
+| Creation Target | Related object families | Single object |
+| Factory Type | Factory with multiple methods | Single method |
+| Purpose | Consistent family creation | Delegation to subclasses |
+| Extension Method | Add new Factory | Add subclasses |
+
+💡 Decision Criteria
+
+- **Single object creation**: Factory Method
+- **Related object family creation**: Abstract Factory
+- **Family consistency is important**: Abstract Factory
+
+## When to Use It?
+
+The Abstract Factory Pattern is effective in the following cases:
+
+| Use Case | Reason |
+| --- | --- |
+| UI themes (Light/Dark) | Maintain consistency of related component families |
+| Platform-specific implementations (macOS/Windows) | Create OS-specific widgets together |
+| Database drivers | Provide Connection, Command, Reader as a set |
+| File format output | Provide Writer, Formatter, Validator as a set |
+
+### Example: UI Theme
+
+```typescript
+// Inject Factory according to theme
+class Application {
+  constructor(private factory: UIFactory) {}
+
+  render(): void {
+    const button = this.factory.createButton();
+    const checkbox = this.factory.createCheckbox();
+
+    button.render();
+    checkbox.render();
+  }
+}
+
+// Switch theme at runtime
+const theme = getUserPreference(); // "light" or "dark"
+const factory = theme === "light"
+  ? new LightUIFactory();
+  : new DarkUIFactory();
+
+const app = new Application(factory);
+app.render();
+```
+
+## When NOT to Use It?
+
+Using Abstract Factory for the following reasons is incorrect.
+
+### Grouping Unrelated Objects
+
+```typescript
+// ❌ Bad example
+interface MiscFactory {
+  createUser(): User;
+  createLogger(): Logger;
+  createCache(): Cache;
+}
+```
+
+When there is no relationship between objects and family consistency is unnecessary, manage with individual Factories or DI.
+
+### Creating Only One Object
+
+```typescript
+// ❌ Excessive
+interface ReportFactory {
+  createReport(): Report; // Only one method
+}
+```
+
+If creating only one object, Factory Method suffices.
+
+### Family Types Won't Increase
+
+If family types are fixed, Simple Factory or conditional branching suffices.
+
+💡 **Decision Criteria**
+
+- **3 or more families, or expected to grow**: Abstract Factory
+- **2 or fewer families and fixed**: Simple Factory
+
+### Can Be Solved with Dependency Injection (DI)
+
+```typescript
+// ✅ Recommended: Inject via DI
+class Application {
+  constructor(
+    private userService: UserService,
+    private orderService: OrderService
+  ) {}
+}
+```
+
+Using DI containers eliminates the need to create custom Abstract Factories.
+
+## Considerations When Using Abstract Factory
+
+When adopting Abstract Factory Pattern, understand the following three Considerations.
+
+### 1. Increased Complexity
+
+Abstract Factory requires many classes/interfaces.
+
+Balance the benefits or consistency guarantee and extensibility against the cost of complexity.
+
+### 2. Difficult to Add New Products
+
+When adding a new component (e.g., Slider), all Factories need modification.
+
+This violates the Open-Closed Principle. Design Products carefully and maintain stable interfaces that don't change frequently.
+
+### 3. Factory Selection Logic Required
+
+Logic is needed to determine which Factory to use at runtime.
+
+This selection logic itself needs to be managed elsewhere (configuration file, DI container).
+
+## Summary
+
+Abstract Factory Pattern is "a creational pattern that creates families of related objects while maintaining consistency."
+
+💡 **Key Poiints**
+
+- **Guarantee family consistency** - Create related objects together, prevent mixing
+- **Understand complexity trade-offs** - Accept that many classes are needed
+- **Difficult to add new Products** - Interface stability is important
+- **Consider alternatives** - Evaluate whether DI containers can solve the problem
+
+Always consider whether "family consistency is really important" and "family types are likely to increase."
