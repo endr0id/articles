@@ -1,0 +1,293 @@
+---
+title: "Abstract Factory"
+description: "関連する一連のオブジェクト群を、具象クラスを明示せずに生成するパターン"
+date: "2026-08-03"
+updatedDate: "2026-08-04"
+tags:
+  - "design-pattern"
+  - "GoF"
+  - "architecture"
+author: "endr0id"
+published: true
+heroImage: ""
+---
+
+# Abstract Factoryパターンとは?
+
+Abstract Factoryパターンは関連するオブジェクトのファミリーを具体的なクラスを指定せずに生成するパターンです。
+
+複数の関連オブジェクトをまとめて生成しそれらの整合性を保証します。
+
+## なぜAbstract Factoryが必要なのか
+
+次のような状況を考えてみます。
+
+> UIコンポーネントライブラリを開発しているがLightテーマとDarkテーマの両方をサポートしたい。
+> 各テーマでButton、Checkbox、Inputなど複数のコンポーネントが必要だがテーマ間で見た目の整合性を保ちたい。
+
+この問題は、OS毎のウィジェット、データベースドライバー一式、ファイルフォーマット出力など、様々な場面で発生します。
+
+### 問題のあるコード
+
+個別のFactoryを使うとオブジェクト間の整合性を保証できません。
+
+```typescript
+// 個別のFactoryパターン
+class ButtonFactory {
+  static create(theme: string): Button {
+    return theme === "light" ? new LightButton() : new DarkButton();
+  }
+}
+
+class CheckboxFactory {
+  static create(theme: string): Checkbox {
+    return theme === "light" ? new LightCheckbox() : new DarkCheckbox();
+  }
+}
+
+// 問題: テーマの指定をミスすると整合性が崩れる
+const button = ButtonFactory.create("light");
+const checkbox = CheckboxFactory.create("dark"); // 混在!
+```
+
+この例では次の問題があります。
+
+- 各コンポーネントを個別に生成するため、テーマの整合性が保証されない
+- クライアントコードが複数のFactoryを呼び出す必要がある
+- 新しいコンポーネントを追加する度にクライアントコードを修正する必要がある
+
+### Abstract Factoryパターンによる解決
+
+関連オブジェクトをまとめて生成するFactoryを定義します。
+
+```typescript
+// Abstract Products
+interface Button {
+  render(): void;
+}
+
+interface Checkbox {
+  render(): void;
+}
+
+// Concrete Products: Light Theme
+class LightButton implements Button {
+  render() {
+    console.log("Light Button");
+  }
+}
+
+class LightCheckbox implements Checkbox {
+  render() {
+    console.log("Light Checkbox");
+  }
+}
+
+// Concrete Products: Dark Theme
+class DarkButton implements Button {
+  render() {
+    console.log("Dark Button");
+  }
+}
+
+class DarkCheckbox implements Checkbox {
+  render() {
+    console.log("Dark Checkbox");
+  }
+}
+
+// Abstract Factory
+interface UIFactory {
+  createButton(): Button;
+  createCheckbox(): Checkbox;
+}
+
+// Concrete Factory: Light Theme
+class LightUIFactory implements UIFactory {
+  createButton(): Button {
+    return new LightButton();
+  }
+
+  createCheckbox(): Checkbox {
+    return new LightCheckbox();
+  }
+}
+
+// Concrete Factory: Dark Theme
+class DarkUIFactory implements UIFactory {
+  createButton(): Button {
+    return new DarkButton();
+  }
+
+  createCheckbox(): Checkbox {
+    return new DarkCheckbox();
+  }
+}
+
+// クライアントコード
+function renderUI(factory: UIFactory) {
+  const button = factory.createButton();
+  const checkbox = factory.createCheckbox();
+
+  button.render();
+  checkbox.render();
+}
+
+// 使用例: テーマの整合性が保証される
+const lightFactory = new LightUIFactory();
+renderUI(lightFactory);
+// Output: Light Button, Light Checkbox
+
+const darkFactory = new DarkUIFactory();
+renderUI(darkFactory);
+// Output: Dark Button, Dark Checkbox
+```
+
+この実装では次のことが改善されます。
+
+- 1つのFactoryで関連する全てのオブジェクトを生成できる
+- テーマの整合性が保証される（Lightテーマなら全てLight系のコンポーネント）
+- クライアントコードはFactoryのインターフェースのみに依存
+- 新しいテーマを追加する際、新しいFactoryクラスを作るだけでクライアントコードは変更不要
+
+💡 **本質**
+
+Abstract Factoryパターンの本質は「複数のオブジェクトを作る」ことではありません。
+
+「関連するオブジェクトのファミリーを整合性を保って生成すること」です。
+
+## Factory Methodとの違い
+
+Abstract FactoryとFactory Methodは似ていますが目的と構造が異なります。
+
+| 項目 | Abstract Factory | Factory Method |
+| --- | --- | --- |
+| 生成対象 | 関連オブジェクト群(ファミリー) | 単一のオブジェクト |
+| Factoryの種類 | 複数のメソッドを持つFactory | 1つのメソッド |
+| 目的 | 整合性のあるファミリー生成 | サブクラスへの生成委譲 |
+| 拡張方法 | 新しいFactoryを追加 | サブクラスを追加 |
+
+
+## いつ使うか?
+
+Abstract Factoryパターンは次のような場合に有効です。
+
+| 使用場面 | 理由 |
+| --- | --- |
+| UIテーマ(Light/Dark) | 関連コンポーネント群の整合性を保つ |
+| プラットフォーム固有実装(macOS/Windows) | OS固有のウィジェットをまとめて生成 |
+| データベースドライバー | Connection、Command、Readerをセットで提供 |
+| ファイルフォーマット出力 | Writer、Formatter、Validatorをセットで提供 |
+
+## 具体例: UIテーマ
+
+```typescript
+// テーマに応じたFactoryを注入
+class Application {
+  constructor(private factory: UIFactory) {}
+
+  render(): void {
+    const button = this.factory.createButton();
+    const checkbox = this.factory.createCheckbox();
+
+    button.render();
+    checkbox.render();
+  }
+}
+
+// 実行時にテーマを切り替え
+const theme = getUserPreference(); // "light" or "dark"
+const factory = theme === "light"
+  ? new LightUIFactory();
+  : new DarkUIFactory();
+
+const app = new Application(factory);
+app.render();
+```
+
+## いつ使わないか?
+
+次のような理由でAbstract Factoryを使うのは誤りです。
+
+### 関連性のないオブジェクトをまとめる
+
+```typescript
+// ❌ 悪い例
+interface MiscFactory {
+  createUser(): User;
+  createLogger(): Logger;
+  createCache(): Cache;
+}
+```
+
+オブジェクト間に関連性がなく、ファミリーとしての整合性が不要な場合は、個別のFactoryまたはDIで管理すべきです。
+
+### 1つのオブジェクトしか生成しない
+
+```typescript
+// ❌ 過剰
+interface ReportFactory {
+  createReport(): Report; // メソッドが1つだけ
+}
+```
+
+1つのオブジェクトしか生成しないなら、Factory Methodで十分です。
+
+### ファミリーの種類が増えない
+
+ファミリーの種類が固定されているならSimple Factoryまたは条件分岐で十分です。
+
+💡 **判断基準**
+
+- ファミリーが3つ以上、または将来増える見込み: Abstract Factory
+- ファミリーが2つ以下で固定: Simple Factory
+
+### 依存性注入(DI)で解決できる
+
+```typescript
+// ✅ 推奨: DIで注入
+class Application {
+  constructor(
+    private userService: UserService,
+    private orderService: OrderService
+  ) {}
+}
+```
+
+DIコンテナを使えばAbstract Factoryを自作する必要はありません。
+
+## 使う場合の注意点
+
+Abstract Factoryパターンを採用する場合、次の3つの注意点を理解しておく必要があります。
+
+### 1. 複雑性の増大
+
+Abstract Factoryは多くのクラス/インターフェースを必要とします。
+
+整合性保証と拡張性のメリットと複雑性のコストを天秤にかけて判断すること。
+
+### 2. 新しいProductの追加が困難
+
+新しいコンポーネント(例: Slider)を追加する場合、全てのFactoryを修正する必要があります。
+
+これはOpen-Closed原則に違反します。
+PRoductを慎重に設計し、頻繁に変わらない安定したインターフェースを維持することが重要です。
+
+### 3. Factoryの選択ロジックが必要
+
+実行時にどのFactoryを使うか決定するロジックが必要です。
+
+この選択ロジック自体は別の場所（設定ファイル、DIコンテナ）で管理する必要があります。
+
+## まとめ
+
+Abstract Factoryパターンは「関連するオブジェクトのファミリーを整合性を保って生成するパターン」です。
+
+💡 ポイント
+
+- **ファミリーの整合性を保証** - 関連オブジェクトをまとめて生成し、混在を防ぐ
+- **複雑性のトレードオフを理解** - 多くのクラスが必要になることを受け入れる
+- **新しいProductの追加が困難** - インターフェースの安定性が重要
+- **代替手段を検討** - DIコンテナで解決できないか検討する
+
+「本当にファミリーとしての整合性が重要か」「ファミリーの種類が増える見込みがあるか」を常に検討すべきです。
