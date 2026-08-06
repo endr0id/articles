@@ -1,0 +1,281 @@
+---
+title: ""
+description: ""
+date: "2026-08-06"
+updatedDate: "2026-08-06"
+tags:
+  -
+author: ""
+published: false
+heroImage: ""
+---
+
+# Adapterパターンとは?
+
+Adapterパターンはあるクラスのインターフェースをクライアントが期待する他のインターフェースに変換する構造パターンです。
+
+インターフェースの互換性がないために一緒に動作できないクラス同士を協調動作させます。
+
+## なぜAdapterが必要なのか
+
+次のような状況を考えてみます。
+
+> 「既存の在庫管理システムで使っているレガシーAPIが古い形式でデータを返すが、新しいフロントエンドアプリケーションは最新のJSON形式を期待している。
+> レガシーAPIのコードは変更できない」
+
+この問題は
+
+- サードパーティライブラリの統合
+- レガシーシステムとの連携
+- 異なるデータフォーマット間の変換
+
+など、様々な場面で発生します。
+
+### 問題のあるコード
+
+既存のクラスのインターフェースが期待と異なる場合、直接利用できません。
+
+```typescript
+// レガシーAPI（変更できない）
+class LegacyInventoryAPI {
+  getInventoryData(): string {
+    // CSV形式で返す
+    return "item1,100,50\nitem2,200,30\nitem3,150,75";
+  }
+}
+
+// 新しいアプリケーションが期待するインターフェース
+interface ModernInventoryAPI {
+  getInventory(): InventoryItem[];
+}
+
+interface InventoryItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+// クライアントコード
+class InventoryApp {
+  constructor(private api: ModernInventoryAPI) {}
+
+  displayInventory(): void {
+    const items = this.api.getInventory();
+    items.forEach(item => {
+      console.log(`${item.name}: ${item.quantity}個, ￥${item.price}`);
+    });
+  }
+}
+
+// 問題: LegacyInventoryAPIはModernInventoryAPIと互換性がない
+// const app = new InventoryApp(new LegacyInventoryAPI()); // 型エラー
+```
+
+### Adapterパターンによる解決
+
+```typescript
+// レガシーAPI（変更できない）
+class LegacyInventoryAPI {
+  getInventoryData(): string {
+    return "item1,100,50\nitem2,200,30\nitem3,150,75";
+  }
+}
+
+// 期待されるインターフェース
+interface ModernInventoryAPI {
+  getInventory(): InventoryItem[];
+}
+
+interface InventoryItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+// Adapter: LegacyAPIをModernAPIに適合させる
+class InventoryAPIAdapter implements ModernInventoryAPI {
+  constructor(private legacyAPI: LegacyInventoryAPI) {}
+
+  getInventory(): InventoryItem[] {
+    // CSV形式を解析してJSON形式に変換
+    const csvData = this.legacyAPI.getInventoryData();
+    const lines = csvData.split("\n");
+
+    return lines.map((line) => {
+      const [name, quantity, price] = line.split[","];
+      return {
+        name,
+        quantity: parseInt(quantity, 10),
+        price: parseInt(price, 10),
+      };
+    });
+  }
+}
+
+// クライアントコード
+class InventoryApp {
+  constructor(private api: ModernInventoryAPI) {}
+
+  displayInventory(): void {
+    const items = this.api.getInventory();
+    items.forEach((item) => {
+      console.log(`${item.name}: ${item.quantity}個, ￥${item.price}`);
+    });
+  }
+}
+
+// 使用例
+const legacyAPI = new LegacyInventoryAPI();
+const adapter = new InventoryAPIAdapter(legacyAPI);
+const app = new InventoryApp(adapter);
+
+app.displayInventory();
+// 出力:
+// item1: 100個, ￥50
+// item2: 200個, ￥30
+// item3: 150個, ￥75
+```
+
+この実装では次のことが改善されます。
+
+- LegacyAPIを変更せずに新しいインターフェースに適合
+- クライアントコードも変更不要
+- 変換ロジックがAdapterに集約される
+- テスト時にAdapterをモックに差し替えられる
+
+💡 **本題**
+
+Adapterパターンの本質は「変換すること」ではありません。
+
+「互換性のないインターフェースを持つクラスを既存コードを変更せずに協調動作させること」です。
+
+## いつ使うか?
+
+Adapterパターンは次のような場合に有効です。
+
+| 使用場面| 理由 |
+| --- | --- |
+| レガシーコードの統合 | 既存コードを変更せずに新システムと連携 |
+| サードパーティライブラリの統合| 外部ライブラリのインターフェースを自社標準に適合 |
+| 異なるデータフォーマット間の変換| CSV/JSON/XML などの形式を統一 |
+| 複数の実装を統一インターフェースで扱う| 異なるAPIを同じインターフェースで抽象化 |
+
+## いつ使わないか?
+
+次のような理由でAdapterを使うのは誤りです。
+
+### Adapteeを変更できる場合
+
+```typescript
+// 悪い例: 変更可能なクラスにAdapterを使う
+class MyDataSource {
+  fetchData(): string[] {
+    return ["data1", "data2"];
+  }
+}
+
+interface DataProvider {
+  getData(): string[];
+}
+
+// Adapterを作る必要はない
+class DataSourceAdapter implements DataProvider {
+  constructor(private source: MyDataSource) {}
+
+  getData(): string[] {
+    return this.source.fetchData();
+  }
+}
+```
+
+この使い方には次の問題があります。
+
+- MyDataSourceを直接修正できるのにAdapterで複雑化している
+- 不要な間接層が追加される
+- メソッド名を変えるだけならリファクタリングで十分
+
+💡 **原則**
+
+Adapterは「変更できないコード」または「変更したくないコード」に使う。
+
+自分が管理しているコードなら直接修正すべきです。
+
+```typescript
+// 良い例: 直接インターフェースを実装
+class MyDataSource implements DataProvider {
+  getData(): string[] {
+    return ["data1", "data2"];
+  }
+}
+```
+
+### 単純な関数ラッパーで済む場合
+
+```typescript
+// 過剰: 単純な変換にクラスを使う
+class StringFormatter {
+  format(value: string): string {
+    return value.toUpperCase();
+  }
+}
+
+interface Formatter {
+  transform(input: string): string;
+}
+
+class StringFormatterAdapter implements Formatter {
+  constructor(private formatter: StringFormatter) {}
+
+  transform(input: string): string {
+    return this.formatter.format(input);
+  }
+}
+
+// 推奨: 単純な関数で十分
+function adaptStringFOrmatter(formatter: StringFormatter): Formatter {
+  return {
+    transform: (input: string) => formatter.format(input)
+  };
+}
+```
+
+### インターフェースが完全に異なる
+
+```typescript
+// 悪い例: 無理やりインターフェースを合わせる
+interface ImageProcessor {
+  processImage(image: Image): ProcessedImage;
+}
+
+interface TextAnalyzer {
+  analyzeText(text: string): AnalysisResult;
+}
+
+// 意味的に全く異なるのでAdapterは不適切
+class TextToImageAdapter implements ImageProcessor {
+  constructor(private textAnalyzer: TextAnalyzer) {}
+
+  processImage(image: Image): ProcessedImage {
+    // 無理やり変換（意味不明）
+    const text = image.extractText();
+    this.textAnalyzer.analyzeText(text);
+    // ...
+  }
+}
+```
+
+Adapterは「同じ目的で異なるインターフェース」を持つクラスにいます。
+
+全く異なる責務のクラスを無理に適合させるべきではありません。
+
+## 使う場合の注意点
+
+Adapterパターンを採用する場合でも次のトレードオフを理解しておく必要があります。
+
+### 間接層が増える
+
+Adapterを使うと、呼び出し階層が増えます。
+
+```typescript
+// クライアント -> Adapter -> Adaptee
+```
