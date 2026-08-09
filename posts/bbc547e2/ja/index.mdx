@@ -12,150 +12,51 @@ heroImage: ""
 
 # TypeScriptの型システムをどう使い分けるか
 
-TypeScriptには `interface`、`type`、`Pick`、`Omit`、`infer`、`extends`、`Mapped Type`、`Conditional Type` など、型を扱うための多くの機能があります。
+[TypeScript](https://www.typescriptlang.org/)には `interface`、`type`、`Pick`、`Omit`、`infer`、`extends`、[Mapped Type](https://www.typescriptlang.org/docs/handbook/2/mapped-types.html)、[Conditional Type](https://www.typescriptlang.org/docs/handbook/2/conditional-types.html)など、型を扱うための機能が多くあります。
 
-これらを学んでいると、
+これらを学んでいくと、
 
-> 「色々できるのは分かったけど、結局いつ何を使えばいいのか？」
+> 「色々できるのは分かったけど、いつ何を使う？」
 
 という疑問が出てきます。
 
-特に `infer` や `extends` などは、型レベルでかなり複雑な処理までできるため、便利そうだから使いたくなります。
+特に `infer` や `extends` は型レベルで複雑な処理もできるため、便利そうだから使いたくなります。
 
-しかし、型システムを設計するときに重要なのは、**「何ができるか」ではなく「今どのレイヤーの問題を解いているか」**です。
+ただ、型設計で重要なのは「何ができるか」ではなく、**「今どのレイヤーの問題を解いているか」**です。
 
-この記事では、TypeScriptの型システムを「具体的 → 抽象的」という観点で整理し、さらに「compile timeで検証するのか、runtimeで検証するのか」という観点まで含めて整理します。
+この記事では、TypeScriptの型システムを「具体的 → 抽象的」という観点で整理します。
 
----
-
-## 1. 「チューリング完全」とは何か
-
-TypeScriptについて調べていると、
-
-> TypeScriptの型システムはチューリング完全
-
-という説明を目にすることがあります。
-
-ここで最初に注意したいのは、
-
-> **「チューリング完全 = 型で計算する」という意味ではない**
-
-ということです。
-
-チューリング完全とは、簡単に言えば、
-
-> **理論上、あらゆる計算可能な計算を表現できるだけの計算能力を持つ**
-
-という性質です。
-
-したがって、チューリング完全なのは「型」という概念そのものではありません。
-
-TypeScriptの場合、
-
-```text
-TypeScript
-├── JavaScriptとして実行される部分
-│   └── runtime
-│
-└── TypeScriptの型システム
-    └── compile time
-```
-
-という構造があります。
-
-JavaScriptとして実行されるコードは当然runtimeで計算できます。
-
-一方、TypeScriptでは `extends`、`infer`、`Conditional Type`、再帰型などを組み合わせることで、**型システム上でも非常に複雑な計算を表現できます**。
-
-その型システムが理論上チューリング完全です。
-
-つまり、
-
-> **TypeScriptの型システムがチューリング完全だから、型レベルでも非常に複雑な処理を表現できる**
-
-という関係です。
+さらに、型で扱う問題とruntimeで扱う問題を分け、TypeScriptと[Zod](https://zod.dev/)をどう使い分けるかまで整理します。
 
 ---
 
-## 2. `infer` や `extends` は「チューリング完全」という名前ではない
+## 型設計における抽象度
 
-例えば、
+型の扱い方は、具体的な概念の定義から始まり、既存型からの派生、型構造の変換・解析、そして型操作そのものの抽象化へと、徐々に抽象度が高くなります。
 
-```ts
-type Unwrap<T> =
-  T extends Promise<infer U>
-    ? U
-    : T;
+```mermaid
+flowchart LR
+    A["型を定義する<br/>type / interface"]
+    B["型から派生する<br/>Pick / Omit / Partial"]
+    C["型を変換・解析する<br/>Mapped Type / extends / infer"]
+    D["型操作を抽象化する<br/>Generics / Recursive Types"]
+
+    A --> B --> C --> D
 ```
 
-という型があります。
+具体的な概念を扱うほど左側、高度に汎用化された型操作ほど右側に位置します。
 
-```ts
-type Result = Unwrap<Promise<string>>;
-// string
-```
+この図は型設計における**抽象度・複雑度の目安**です。
 
-ここでは `extends` と `infer` を利用して、型レベルで計算しています。
-
-しかし、
-
-> `infer` や `extends` = チューリング完全
-
-ではありません。
-
-これらは**型レベルプログラミングを構成するための機能**です。
-
-ざっくり言えば、
-
-```text
-extends
-infer
-Conditional Type
-Mapped Type
-再帰型
-    ↓
-型システムを構成する機能
-    ↓
-これらを組み合わせる
-    ↓
-非常に複雑な型レベル計算が可能
-    ↓
-TypeScriptの型システムはチューリング完全
-```
-
-という関係です。
+実装時に必ず左から右へ進むという意味ではありません。
 
 ---
 
-## 3. 型システムには「使う段階」がある
+## 型を定義する
 
-TypeScriptには様々な型操作がありますが、最初から高度な機能を使う必要はありません。
+新しい概念が発生したら、まずその概念自体を `interface` や `type` で定義します。
 
-型設計は、次のように**具体的なものから抽象的なものへ**段階的に考えると整理しやすくなります。
-
-```text
-具体的 ─────────────────────→ 抽象的
-
-  1          2           3           4
-  │          │           │           │
-定義       派生        変換        汎用化
-  │          │           │           │
-type      Pick/Omit    infer        再帰型
-interface Partial      extends      型レベル
-                     Mapped Type    プログラミング
-```
-
-これはTypeScriptの公式な分類ではありません。
-
-**型設計を考えるための実用的な判断レイヤー**です。
-
----
-
-### レイヤー1：新しい概念を定義する
-
-まず、新しい概念が存在するなら `interface` や `type` で定義します。
-
-例えばブログのプロフィールに、
+例えばブログのプロフィールなら、以下のような型になります。
 
 ```ts
 type CareerHistory = {
@@ -170,27 +71,13 @@ type Profile = {
 };
 ```
 
-という型があるとします。
+ここでは `CareerHistory` と `Profile` という2つの概念を定義しています。
 
-ここでは、
+まだ既存の型を加工する必要はありません。
 
-> 「CareerHistoryとは何か？」
+### interface と type
 
-> 「Profileとは何か？」
-
-を定義しています。
-
-まだ既存の型を加工していません。
-
-この段階では、普通に `interface` や `type` を使えば十分です。
-
----
-
-#### `interface` と `type` の役割
-
-両者には重複する部分も多いですが、概念的には、
-
-##### `interface`
+`interface` はオブジェクトの構造や契約を定義する用途に向いています。
 
 ```ts
 interface User {
@@ -199,13 +86,7 @@ interface User {
 }
 ```
 
-のように、
-
-> **「この型はこういう構造・契約を持つ」**
-
-というオブジェクトの構造を定義するのに向いています。
-
-##### `type`
+一方、`type` はオブジェクトだけでなく、Union TypeやLiteral Typeなども含めて幅広い型を表現できます。
 
 ```ts
 type UserId = string;
@@ -217,83 +98,15 @@ type Result =
   | { success: false; error: Error };
 ```
 
-のように、
+実際の使い分けにはプロジェクトの規約も関係します。
 
-> **型そのものを表現する**
+ここで重要なのは、**新しい概念を定義する段階**だということです。
 
-用途が広いです。
+### Single Source of Truth
 
-ただし、この2つの使い分けは厳密なルールではなく、プロジェクトの規約による部分もあります。
+型を定義するときは、同じ型情報を複数箇所に書かないことも重要です。
 
-重要なのは、
-
-> **新しい概念を定義する段階**
-
-だということです。
-
----
-
-### レイヤー2：既存の型から派生させる
-
-次に、
-
-> 「既存の型の一部だけ使いたい」
-
-という要求が出てきます。
-
-例えば、
-
-```ts
-type Profile = {
-  introduction: string;
-  careerHistory: CareerHistory[];
-  skills: Skill[];
-};
-```
-
-から、プロフィール概要だけ欲しいなら、
-
-```ts
-type ProfileSummary = Pick<
-  Profile,
-  "introduction" | "skills"
->;
-```
-
-とできます。
-
-また、キャリア情報を除外したいなら、
-
-```ts
-type ProfileWithoutCareer =
-  Omit<Profile, "careerHistory">;
-```
-
-とできます。
-
-その他にも、
-
-```ts
-Partial<Profile>
-Readonly<Profile>
-Required<Profile>
-```
-
-などがあります。
-
-この段階の特徴は、
-
-> **既存の型との関係を維持したまま、別の型を作る**
-
-ことです。
-
----
-
-#### Single Source of Truth(SSOT)との関係
-
-ここで型操作の大きなメリットが出てきます。
-
-例えば、次のように同じ構造を手書きすると、
+例えば、以下のように同じ構造を個別に定義すると、型同士の関係がなくなります。
 
 ```ts
 type Profile = {
@@ -308,11 +121,9 @@ type ProfileSummary = {
 };
 ```
 
-`Profile` と `ProfileSummary` の間に型としての関係がありません。
+`Profile` を変更しても、`ProfileSummary` は自動的に追従しません。
 
-`Profile` を変更しても、`ProfileSummary` は自動的には追従しません。
-
-一方、
+このような場合は、既存の型から派生させることで関係を維持できます。
 
 ```ts
 type ProfileSummary = Pick<
@@ -321,29 +132,20 @@ type ProfileSummary = Pick<
 >;
 ```
 
-なら、
+これにより、
 
 ```text
 Profile
-  │
   ├── ProfileSummary
   ├── ProfileWithoutCareer
   └── ...
 ```
 
-という関係になります。
+という型同士の関係を作れます。
 
-つまり、
+これが型設計におけるSingle Source of Truthの考え方です。
 
-> **Profileを元となる型として、そこから必要な型を導出する**
-
-ことができます。
-
-これが型システムにおけるSingle Source of Truthの重要な考え方です。
-
----
-
-#### ただし「すべてを既存型から抽出する」わけではない
+ただし、Single Source of Truthだからといって、すべての型を1つの巨大な型から派生させる必要はありません。
 
 例えば、
 
@@ -360,43 +162,92 @@ type Profile = {
 };
 ```
 
-という設計は自然です。
+の場合、`CareerHistory` は独立したドメイン上の概念です。
 
-`CareerHistory` は独立したドメイン上の概念だからです。
-
-逆に、
+そのため、最初から `CareerHistory` として定義する方が自然です。
 
 ```ts
 type CareerHistory =
   Profile["careerHistory"][number];
 ```
 
-とする必要はありません。
+のように、既存の型から無理に抽出する必要はありません。
 
-これは「既存の型から抽出する」という技術としては正しいですが、
-今回のように `CareerHistory` 自体が独立した概念なら、最初から型として定義した方が設計上自然です。
+**独立した概念は独立して定義し、派生した概念は元の型から生成する。**
 
-したがって、
-
-> **SSOT = 一番大きな型を1個だけ作る**
-
-ではありません。
-
-ドメイン上の意味を持つ型はそれぞれ定義し、それらを組み合わせます。
-
-その上で、**単なる派生表現だけを型操作で生成する**のが自然です。
+この区別が重要です。
 
 ---
 
-### レイヤー3：型そのものを変換・解析する
+## 型から派生する
 
-`Pick` や `Omit` だけでは足りなくなってくると、さらに高度な型操作が必要になります。
+既存の型を一部利用して別の型を作る場合は、型操作を利用します。
+
+例えば、
+
+```ts
+type Profile = {
+  introduction: string;
+  careerHistory: CareerHistory[];
+  skills: Skill[];
+};
+```
+
+からプロフィールの概要だけを作る場合、
+
+```ts
+type ProfileSummary = Pick<
+  Profile,
+  "introduction" | "skills"
+>;
+```
+
+とできます。
+
+特定のプロパティを除外する場合は `Omit` を使います。
+
+```ts
+type ProfileWithoutCareer =
+  Omit<Profile, "careerHistory">;
+```
+
+その他にも、
+
+```ts
+Partial<Profile>
+Readonly<Profile>
+Required<Profile>
+```
+
+などがあります。
+
+この段階では、既存の型との関係を維持したまま別の型を作ることが目的です。
+
+### 主な型操作
+
+* `Pick`: 特定のプロパティだけを抽出
+* `Omit`: 特定のプロパティを除外
+* `Partial`: すべてのプロパティをOptional化
+* `Required`: すべてのプロパティをRequired化
+* `Readonly`: すべてのプロパティをReadonly化
+* `keyof`: 型のプロパティ名をUnionとして取得
+* `T[K]`: 型から特定のプロパティの型を取得
+
+ここで重要なのは、**新しい概念を作っているのか、既存の概念から別の表現を作っているのか**です。
+
+後者なら、まず既存型との関係を維持できる方法を検討します。
+
+---
+
+## 型を変換・解析する
+
+`Pick` や `Omit` だけでは表現できない要求もあります。
 
 例えば、
 
 > 「すべてのプロパティをNullableにしたい」
 
-という要求です。
+という場合です。
 
 ```ts
 type Nullable<T> = {
@@ -408,37 +259,25 @@ type Nullable<T> = {
 type NullableProfile = Nullable<Profile>;
 ```
 
-これにより、`Profile` の各プロパティが `null` を許容する型になります。
-
-ここでは単純に、
+ここでは単にプロパティを選択しているのではありません。
 
 ```text
 Profile
- ↓
-一部を取り出す
-```
-
-のではなく、
-
-```text
-Profile
- ↓
+  ↓
 各プロパティを走査
- ↓
-各プロパティの型を変換
- ↓
+  ↓
+プロパティの型を変換
+  ↓
 新しい型を生成
 ```
 
-という処理をしています。
+という処理を行っています。
 
-これが [Mapped Type](https://www.typescriptlang.org/docs/handbook/2/mapped-types.html) です。
+これはMapped Typeによる型変換です。
 
----
+### extends と Conditional Type
 
-#### `extends`：型によって処理を分岐する
-
-`extends` は `Conditional Type` と組み合わせることで、型レベルの条件分岐を表現できます。
+`extends` はConditional Typeと組み合わせることで、型による条件分岐を表現できます。
 
 ```ts
 type IsString<T> =
@@ -455,36 +294,19 @@ type B = IsString<number>;
 // false
 ```
 
-これは概念的には、
+これは型レベルのif文に近いものです。
 
 ```text
 Tがstring？
-   │
- ┌─┴─┐
-Yes  No
- ↓    ↓
-true false
+  ├─ Yes → true
+  └─ No  → false
 ```
 
-という型レベルのifです。
+`extends` を使う判断基準は、**入力された型によって生成する型を変えたいか**です。
 
-したがって、`extends` を使う判断基準は、
+### infer
 
-> **「入力される型によって、生成する型を変えたい」**
-
-という要求があるかどうかです。
-
----
-
-#### `infer`：型の内部から情報を取り出す
-
-`infer` は、
-
-> **既存の型の内部に存在する型情報を取り出したい**
-
-ときに使います。
-
-例えば、
+`infer` は、型の内部にある型情報を取り出す場合に利用します。
 
 ```ts
 type Unwrap<T> =
@@ -505,18 +327,16 @@ Promise<string>
       ↓
    infer U
       ↓
-     U = string
+   U = string
       ↓
     string
 ```
 
-という形で型を抽出しています。
+という形で、`Promise` の内部にある `string` を取り出しています。
 
----
+`infer` の判断基準は、**型の構造を解析して内部の型情報を抽出したいか**です。
 
-#### `infer` は「便利だから使う」ものではない
-
-例えば配列の要素型を取得したいだけなら、
+例えば、特定の配列の要素型を取得するだけなら、
 
 ```ts
 type CareerHistoryItem =
@@ -525,7 +345,9 @@ type CareerHistoryItem =
 
 で十分です。
 
-わざわざ、
+わざわざ `infer` を使う必要はありません。
+
+一方で、任意の配列から要素型を抽出する汎用的な型を作りたい場合は、
 
 ```ts
 type ArrayItem<T> =
@@ -534,29 +356,17 @@ type ArrayItem<T> =
     : never;
 ```
 
-とする必要はありません。
+といった型が有効になります。
 
-後者が有効なのは、
-
-> **どんな配列型からでも要素型を抽出できる汎用的な仕組みを作りたい**
-
-場合です。
-
-つまり `infer` の目的は、
-
-> 「inferを使うこと」
-
-ではなく、
-
-> **「型の構造を解析して内部の型情報を抽出すること」**
-
-です。
+つまり、`infer` を使う目的は「高度な機能を使うこと」ではなく、**型の内部から必要な情報を抽出すること**です。
 
 ---
 
-### レイヤー4：型操作そのものを抽象化する
+## 型操作を抽象化する
 
-さらに進むと、
+さらに型操作そのものを汎用化すると、特定のドメインモデルから離れていきます。
+
+例えば、
 
 ```ts
 type ArrayItem<T> =
@@ -565,13 +375,7 @@ type ArrayItem<T> =
     : never;
 ```
 
-のように、特定のドメインモデルから離れて、
-
-> **型変換のルールそのもの**
-
-を定義するようになります。
-
-例えば、
+は、`CareerHistory` に限定された型ではありません。
 
 ```ts
 ArrayItem<string[]>
@@ -579,32 +383,21 @@ ArrayItem<number[]>
 ArrayItem<CareerHistory[]>
 ```
 
-のように、どの配列にも利用できます。
+のように、任意の配列に利用できます。
 
 この段階では、
 
-```text
-Profile
-CareerHistory
-User
-Post
-```
+> 「このデータをどう表現するか」
 
-といった具体的なドメインから離れ、
+よりも、
 
-```text
-T
-U
-K
-```
+> 「型をどう変換するか」
 
-という抽象的な型を操作するようになります。
-
-そのため、
+そのものを扱っています。
 
 ```text
-具体的 ─────────────────→ 抽象的
-
+具体的
+  ↓
 Profile
   ↓
 Pick<Profile, ...>
@@ -614,74 +407,81 @@ Nullable<Profile>
 Nullable<T>
   ↓
 ArrayItem<T>
+  ↓
+抽象的
 ```
 
-という形で、徐々に抽象度が高くなっていきます。
+### ジェネリクスによる汎用化
 
----
+型操作を抽象化する場合、ジェネリクスが重要になります。
 
-## 型操作を使う判断基準
+```ts
+type Nullable<T> = {
+  [K in keyof T]: T[K] | null;
+};
+```
 
-ここまでをまとめると、次のように考えられます。
+ここでの `T` は特定の型ではありません。
 
-| 段階 | やりたいこと          | 主な機能                                                   |
-| -- | --------------- | ------------------------------------------------------ |
-| 1  | 新しい概念を定義        | `interface`, `type`                                    |
-| 2  | 既存型から派生型を作る     | `Pick`, `Omit`, `Partial`, `Readonly`, `keyof`, `T[K]` |
-| 3  | 型の構造を変換・条件分岐・解析 | `Mapped Type`, `Conditional Type`, `extends`, `infer`      |
-| 4  | 型操作そのものを汎用化     | ジェネリック、再帰型、複数の型操作                                      |
+どの型が渡されても同じ変換ルールを適用できます。
 
-重要なのは、
+### 再帰型と高度な型レベルプログラミング
 
-> **下のレイヤーで表現できるなら、上のレイヤーに行かない**
-
-ことです。
-
-例えば、
+型操作を組み合わせると、さらに複雑な型変換も可能になります。
 
 ```text
-Pickでできる
-    ↓
-inferを使わない
-
-普通のtype定義でできる
-    ↓
-複雑なMapped Typeにしない
-
-runtimeで解決すべき問題
-    ↓
-型レベルプログラミングで解決しない
+Generics
+  +
+Conditional Type
+  +
+Mapped Type
+  +
+infer
+  +
+Recursive Type
 ```
 
-という考え方です。
+このような型レベルの処理を組み合わせることで、TypeScriptの型システムは非常に高い表現力を持ちます。
+
+TypeScriptの型システムがチューリング完全とされるのも、この型レベルでの計算能力に関係します。
+
+ただし、**チューリング完全であることと、`infer` や `extends` がチューリング完全ということは別の話**です。
+
+`infer` や `extends` は、型レベルの処理を構成するための機能です。
+
+そして、型レベルで複雑なことができるからといって、複雑な型を書くべきという意味でもありません。
 
 ---
 
-## もう一つの軸："compile time"" vs "runtime"
+## もう一つの判断軸：Compile Time と Runtime
 
-ここまでの話とは別に、もう一つ重要な判断軸があります。
+ここまでの話は、
 
-それが、
+> **「型で解決するなら、どの程度の抽象度で型を扱うか」**
 
-> **「いつ検証できる情報なのか？」**
+という話です。
 
-です。
+もう一つ、
 
-TypeScriptの型システムは基本的にcompile timeの仕組みです。
+> **「そもそも型で検証できる問題なのか」**
+
+という判断軸があります。
+
+TypeScriptの型システムは基本的にCompile Timeで動作します。
 
 ```text
 TypeScript
     ↓
-compile time
+Compile Time
     ↓
-型を検証
+型チェック
     ↓
 JavaScript
     ↓
-runtime
+Runtime
 ```
 
-例えば、
+例えばReactのPropsなら、
 
 ```ts
 type ButtonProps = {
@@ -689,8 +489,6 @@ type ButtonProps = {
   disabled?: boolean;
 };
 ```
-
-なら、
 
 ```tsx
 <Button variant="primary" />
@@ -699,45 +497,58 @@ type ButtonProps = {
 //              TypeScript error
 ```
 
-という検証ができます。
+この問題はCompile Timeで解決できます。
 
-これはcompile timeで十分です。
+一方、Runtimeにならないと実際の値が分からないデータもあります。
+
+ここでTypeScriptとZodの役割が分かれます。
 
 ---
 
-## runtimeではTypeScriptの型はデータを検証してくれない
+## RuntimeのデータはTypeScriptだけでは検証できない
 
-一方、APIからデータを取得する場合を考えます。
+例えばAPIからデータを取得します。
 
 ```ts
 const data = await fetch("/api/profile")
   .then(res => res.json());
 ```
 
-このデータが本当に、
+この `data` が本当に期待した構造になっているかは、TypeScriptだけでは保証できません。
 
-```ts
-{
-  introduction: string;
-  careerHistory: CareerHistory[];
-}
+TypeScriptが知っているのは、あくまでコード上で指定された型です。
+
+APIが実際に返した値まで検証することはできません。
+
+つまり、
+
+```text
+「この形のはず」
+        ↓
+TypeScript
+        ↓
+Compile Timeでは問題なし
 ```
 
-なのかは、TypeScriptだけでは保証できません。
+と、
 
-なぜなら、そのデータは**runtimeにならないと実際の値が分からない**からです。
+```text
+「実際にこの形だった」
+        ↓
+Runtime
+        ↓
+データを検証
+```
 
-ここで重要なのが、
+は別の問題です。
 
-> **「想定している」ことと「保証されている」ことは違う**
-
-という点です。
+**「想定している」ことと「実際の値が保証されている」ことは違います。**
 
 ---
 
-## Zodはruntime validationのために使う
+## Runtime ValidationとZod
 
-こうした外部データには[Zod](https://zod.dev/)などのruntime validationを利用できます。
+Runtimeで取得するデータには、ZodなどのRuntime Validationを利用できます。
 
 ```ts
 const UserSchema = z.object({
@@ -746,101 +557,75 @@ const UserSchema = z.object({
 });
 ```
 
-そして、
-
 ```ts
 const result = UserSchema.safeParse(data);
 ```
 
-とすることで、実際のruntimeの値を検証できます。
-
-概念的には、
+処理の流れは以下です。
 
 ```text
 API
  ↓
-unknownなデータ
+外部データ
  ↓
 Zod
  ↓
-runtime validation
+Runtime Validation
  ↓
 検証済みデータ
  ↓
-TypeScript
+アプリケーション
 ```
 
-という流れです。
-
----
-
-## ZodとTypeScriptは競合しない
-
-ここで、
-
-> 「Zodはruntimeで検証できるなら、全部Zodで定義すればいいのでは？」
-
-という疑問が出てきます。
-
-しかし、TypeScriptとZodは役割が違います。
+### ZodとTypeScriptの役割
 
 |                    | TypeScript | Zod |
 | ------------------ | ---------- | --- |
-| compile time       | ◎          | △   |
-| runtime validation | ×          | ◎   |
-| IDE補完              | ◎          | 間接的 |
-| 内部コードの型チェック        | ◎          | △   |
+| Compile Timeの型チェック | ◎          | △   |
+| Runtime Validation | ×          | ◎   |
+| IDE補完              | ◎          | ○   |
+| アプリ内部の型チェック        | ◎          | △   |
 | 外部データの検証           | ×          | ◎   |
-| runtimeコスト         | なし         | あり  |
+| Runtimeコスト         | なし         | あり  |
 
 TypeScriptは、
 
-> **コードの型の使い方が正しいか**
+> 「このコードの型の使い方が正しいか」
 
 を検証します。
 
 Zodは、
 
-> **runtimeで実際に渡された値が正しいか**
+> 「Runtimeで実際に渡された値が期待した構造になっているか」
 
 を検証します。
 
----
+競合するものではなく、役割が違います。
 
-## Zodを使う判断基準
+### Zodを使う判断基準
 
-重要なのは「静的コンテンツかどうか」よりも、
+判断基準は「静的コンテンツかどうか」ではありません。
 
-> **TypeScriptのcompile timeで、その値の正しさを保証できるか？**
+重要なのは、
+
+> **TypeScriptのCompile Timeで、その値の正しさを保証できるか**
 
 です。
 
-### TypeScriptだけで十分なもの
+Compile Timeで保証できるなら、TypeScriptで十分です。
 
-例えばReactのProps。
+例えば、
 
-```ts
-type ButtonProps = {
-  variant: "primary" | "secondary";
-  disabled?: boolean;
-};
+```text
+React Props
+アプリ内部のデータ
+TypeScriptで定義した定数
+静的コンテンツ
 ```
 
-アプリ内部で、
+などです。
 
-```tsx
-<Button variant="primary" />
-```
-
-と利用する場合、TypeScriptがcompile timeで検証できます。
-
-runtimeでわざわざ検証する必要性は低いでしょう。
-
----
-
-### runtime validationを検討するもの
-
-一方、
+一方、Runtimeまで実際の値が分からないものは、Runtime Validationを検討します。
 
 ```text
 API
@@ -850,32 +635,14 @@ JSON
 localStorage
 URL
 ユーザー入力
-外部ライブラリ
+外部ライブラリからのデータ
 ```
 
-など、アプリの外部からruntimeに入ってくるデータは事情が異なります。
+こうしたデータは、TypeScriptで型を付けるだけでは実際の値を保証できません。
 
-例えばAPIなら、
+### ZodをSSOTにする
 
-```text
-API
- ↓
-「こういう構造のはず」
- ↓
-しかし実際の値はruntimeまで分からない
- ↓
-Zod
- ↓
-runtime validation
-```
-
-とすることで、外部データを安全なデータとしてアプリ内部に取り込めます。
-
----
-
-## ZodをSSOTにする
-
-さらにZodでは、スキーマからTypeScriptの型を生成できます。
+ZodではSchemaからTypeScriptの型を生成できます。
 
 ```ts
 const ProfileSchema = z.object({
@@ -892,27 +659,23 @@ const ProfileSchema = z.object({
 type Profile = z.infer<typeof ProfileSchema>;
 ```
 
-ここでは、
+これにより、
 
 ```text
 ProfileSchema
     │
-    ├── runtime
+    ├── Runtime
     │     実データを検証
     │
-    └── compile time
+    └── Compile Time
           Profile型を生成
 ```
 
-となっています。
+という構成になります。
 
-つまり、
+Zod SchemaをSSOTにして、Runtime ValidationとTypeScriptの型を同じ定義から作れます。
 
-> **Zod SchemaをSSOTとして、runtime validationとTypeScriptの型を両方生成する**
-
-ことができます。
-
-これにより、
+これなら、
 
 ```ts
 // Schema
@@ -922,137 +685,100 @@ id: z.string()
 id: string
 ```
 
-のような二重管理を避けられます。
+のような二重管理も不要です。
 
 ---
 
-# 21. 最終的な判断フロー
+## TypeScriptの型システムとRuntime Validationを含めた判断フロー
 
-ここまでを一つの判断フローにすると、次のようになります。
+ここまでをまとめると、2つの判断軸があります。
+
+### 型システム内での抽象度
 
 ```text
-データ・概念が存在する
-        │
-        ↓
-これは新しい概念？
-        │
-      Yes
-        ↓
-interface / type
-        │
-        ↓
-既存の型から派生させたい？
-        │
-      Yes
-        ↓
-Pick / Omit / Partial / keyof / T[K]
-        │
-        ↓
-それだけでは表現できない？
-        │
-      Yes
-        ↓
-Mapped Type / Conditional Type
-extends / infer / その他の型操作
-        │
-        ↓
-型操作そのものを汎用化したい？
-        │
-      Yes
-        ↓
-高度な型レベルプログラミング
+具体的
+  ↓
+型を定義する
+  ↓
+型から派生する
+  ↓
+型を変換・解析する
+  ↓
+型操作を抽象化する
+  ↓
+抽象的
 ```
 
-そして、これは別軸として、
+これは、
+
+> **「型で解決するなら、どの程度の型操作が必要か」**
+
+という判断です。
+
+### Compile Time / Runtime
 
 ```text
-その値はcompile timeで保証できる？
+その値はCompile Timeで保証できる？
         │
    ┌────┴────┐
   Yes       No
    │          │
 TypeScript   Zod等
    │          │
-compile      runtime
-time         validation
+Compile      Runtime
+Time         Validation
 ```
 
-と考えられます。
+これは、
+
+> **「そもそもTypeScriptの型だけで保証できるデータなのか」**
+
+という判断です。
+
+この2つは別の軸として考えます。
 
 ---
 
 ## まとめ
 
-TypeScriptの型システムを使い分けるとき、重要なのは「どの機能を知っているか」ではありません。
+TypeScriptの型システムは、多くの機能を持っています。
 
-**どの問題を解いているのか**を考えることです。
+ただし、便利な機能を知っていることと、それを適切に使えることは別です。
 
-まず、
+型設計では、まず新しい概念を `interface` や `type` で定義します。
 
-> **新しい概念なのか？**
+既存の型から別の表現を作るなら、`Pick` や `Omit` などで関係を維持します。
 
-なら `interface` / `type`。
+それだけでは足りず、型構造そのものを変換・解析する必要があるなら、Mapped Type、Conditional Type、`extends`、`infer` などを使います。
 
-次に、
-
-> **既存の型から派生させたいだけなのか？**
-
-なら `Pick` / `Omit` / `Partial` / `keyof` など。
-
-さらに、
-
-> **型の構造そのものを変換・解析する必要があるのか？**
-
-なら `Mapped Type` / `Conditional Type` / `extends` / `infer` など。
-
-そして、
-
-> **型操作そのものを汎用化する必要があるのか？**
-
-となれば、より高度な型レベルプログラミングを検討します。
-
-この流れは、
+さらに型操作そのものを汎用化する段階では、ジェネリクスや再帰型などを組み合わせます。
 
 ```text
 具体的
   ↓
 型を定義
   ↓
-型を派生
+型から派生
   ↓
-型を変換
+型を変換・解析
   ↓
 型操作を抽象化
   ↓
 抽象的
 ```
 
-という一本の軸として捉えられます。
+ただし、ここで一度、
 
-さらに、
+> 「これは本当にCompile Timeで解決する問題か？」
 
-```text
-compile timeで保証できる
-    ↓
-TypeScript
+と考えます。
 
-runtimeまで分からない
-    ↓
-Zod等でruntime validation
-```
+APIやユーザー入力など、Runtimeにならないと正しさを確認できないデータなら、TypeScriptの型だけでは不十分です。
 
-という別の軸を持つことで、
+その場合はZodなどを使ってRuntime Validationを行い、必要に応じてSchemaからTypeScriptの型を生成します。
 
-> **「これはTypeScriptで検証すべきか？」**
->
-> **「Zodまで必要なのか？」**
->
-> **「`infer`を使う必要があるのか？」**
+最終的には、
 
-といった判断もしやすくなります。
+> **必要な保証に対して、最も単純な仕組みを選ぶ。**
 
-結局のところ、型システムは「色々できるから使う」のではなく、
-
-> **必要な保証・必要な抽象度に応じて、最も単純な仕組みから選択する。**
-
-これがTypeScriptの型設計を考える上で、最も実用的な判断基準だと考えています。
+これがTypeScriptの型システムを使い分ける上での基本的な判断基準になります。
