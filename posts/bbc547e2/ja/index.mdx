@@ -28,7 +28,7 @@ TypeScriptには `interface`、`type`、`Pick`、`Omit`、`infer`、`extends`、
 
 ---
 
-## 1. まず「チューリング完全」とは何か
+## 1. 「チューリング完全」とは何か
 
 TypeScriptについて調べていると、
 
@@ -77,7 +77,7 @@ JavaScriptとして実行されるコードは当然runtimeで計算できます
 
 ---
 
-# 2. `infer` や `extends` は「チューリング完全」という名前ではない
+## 2. `infer` や `extends` は「チューリング完全」という名前ではない
 
 例えば、
 
@@ -127,7 +127,7 @@ TypeScriptの型システムはチューリング完全
 
 ---
 
-# 3. 型システムには「使う段階」がある
+## 3. 型システムには「使う段階」がある
 
 TypeScriptには様々な型操作がありますが、最初から高度な機能を使う必要はありません。
 
@@ -151,7 +151,7 @@ interface Partial      extends      型レベル
 
 ---
 
-# 4. レイヤー1：新しい概念を定義する
+### レイヤー1：新しい概念を定義する
 
 まず、新しい概念が存在するなら `interface` や `type` で定義します。
 
@@ -186,11 +186,11 @@ type Profile = {
 
 ---
 
-# 5. `interface` と `type` の役割
+#### `interface` と `type` の役割
 
 両者には重複する部分も多いですが、概念的には、
 
-### `interface`
+##### `interface`
 
 ```ts
 interface User {
@@ -205,7 +205,7 @@ interface User {
 
 というオブジェクトの構造を定義するのに向いています。
 
-### `type`
+##### `type`
 
 ```ts
 type UserId = string;
@@ -233,7 +233,7 @@ type Result =
 
 ---
 
-# 6. レイヤー2：既存の型から派生させる
+### レイヤー2：既存の型から派生させる
 
 次に、
 
@@ -289,7 +289,7 @@ Required<Profile>
 
 ---
 
-# 7. Single Source of Truthとの関係
+#### Single Source of Truth(SSOT)との関係
 
 ここで型操作の大きなメリットが出てきます。
 
@@ -343,7 +343,7 @@ Profile
 
 ---
 
-# 8. ただし「すべてを既存型から抽出する」わけではない
+#### ただし「すべてを既存型から抽出する」わけではない
 
 例えば、
 
@@ -373,7 +373,8 @@ type CareerHistory =
 
 とする必要はありません。
 
-これは「既存の型から抽出する」という技術としては正しいですが、今回のように `CareerHistory` 自体が独立した概念なら、最初から型として定義した方が設計上自然です。
+これは「既存の型から抽出する」という技術としては正しいですが、
+今回のように `CareerHistory` 自体が独立した概念なら、最初から型として定義した方が設計上自然です。
 
 したがって、
 
@@ -387,7 +388,7 @@ type CareerHistory =
 
 ---
 
-# 9. レイヤー3：型そのものを変換・解析する
+### レイヤー3：型そのものを変換・解析する
 
 `Pick` や `Omit` だけでは足りなくなってくると、さらに高度な型操作が必要になります。
 
@@ -431,11 +432,11 @@ Profile
 
 という処理をしています。
 
-これが `Mapped Type` です。
+これが [Mapped Type](https://www.typescriptlang.org/docs/handbook/2/mapped-types.html) です。
 
 ---
 
-# 10. `extends`：型によって処理を分岐する
+#### `extends`：型によって処理を分岐する
 
 `extends` は `Conditional Type` と組み合わせることで、型レベルの条件分岐を表現できます。
 
@@ -475,7 +476,7 @@ true false
 
 ---
 
-# 11. `infer`：型の内部から情報を取り出す
+#### `infer`：型の内部から情報を取り出す
 
 `infer` は、
 
@@ -513,7 +514,7 @@ Promise<string>
 
 ---
 
-# 12. `infer` は「便利だから使う」ものではない
+#### `infer` は「便利だから使う」ものではない
 
 例えば配列の要素型を取得したいだけなら、
 
@@ -553,7 +554,7 @@ type ArrayItem<T> =
 
 ---
 
-# 13. レイヤー4：型操作そのものを抽象化する
+### レイヤー4：型操作そのものを抽象化する
 
 さらに進むと、
 
@@ -619,7 +620,7 @@ ArrayItem<T>
 
 ---
 
-# 14. 型操作を使う判断基準
+## 型操作を使う判断基準
 
 ここまでをまとめると、次のように考えられます。
 
@@ -656,7 +657,7 @@ runtimeで解決すべき問題
 
 ---
 
-# 15. もう一つの軸：「compile timeかruntimeか」
+## もう一つの軸："compile time"" vs "runtime"
 
 ここまでの話とは別に、もう一つ重要な判断軸があります。
 
@@ -704,7 +705,7 @@ type ButtonProps = {
 
 ---
 
-# 16. runtimeではTypeScriptの型はデータを検証してくれない
+## runtimeではTypeScriptの型はデータを検証してくれない
 
 一方、APIからデータを取得する場合を考えます。
 
@@ -734,9 +735,9 @@ const data = await fetch("/api/profile")
 
 ---
 
-# 17. Zodはruntime validationのために使う
+## Zodはruntime validationのために使う
 
-こうした外部データにはZodなどのruntime validationを利用できます。
+こうした外部データには[Zod](https://zod.dev/)などのruntime validationを利用できます。
 
 ```ts
 const UserSchema = z.object({
@@ -773,7 +774,7 @@ TypeScript
 
 ---
 
-# 18. ZodとTypeScriptは競合しない
+## ZodとTypeScriptは競合しない
 
 ここで、
 
@@ -806,7 +807,7 @@ Zodは、
 
 ---
 
-# 19. Zodを使う判断基準
+## Zodを使う判断基準
 
 重要なのは「静的コンテンツかどうか」よりも、
 
@@ -872,7 +873,7 @@ runtime validation
 
 ---
 
-# 20. ZodをSSOTにする
+## ZodをSSOTにする
 
 さらにZodでは、スキーマからTypeScriptの型を生成できます。
 
@@ -980,7 +981,7 @@ time         validation
 
 ---
 
-# まとめ
+## まとめ
 
 TypeScriptの型システムを使い分けるとき、重要なのは「どの機能を知っているか」ではありません。
 
