@@ -7,7 +7,7 @@
    width="1376"
    height="768"
    viewBox="0 0 1376 768"
-   sodipodi:docname="sig_geimini.png"
+   sodipodi:docname="singleton.svg"
    inkscape:export-filename="singleton.svg"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"
@@ -32,14 +32,15 @@
        y="0"
        width="1376"
        height="768"
-       id="page2"
+       id="page1"
        margin="0"
        bleed="0" />
   </sodipodi:namedview>
   <g
      inkscape:groupmode="layer"
      inkscape:label="Image"
-     id="g1">
+     id="g1"
+     sodipodi:insensitive="true">
     <image
        width="1376"
        height="768"
