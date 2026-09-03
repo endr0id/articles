@@ -1,0 +1,245 @@
+---
+title: "What is Prototype?"
+description: "A pattern that creates new objects by copying an existing instance."
+date: "2026-08-03"
+updatedDate: "2026-08-04"
+tags:
+  - "design-pattern"
+  - "GoF"
+  - "architecture"
+author: "endr0id"
+published: true
+heroImage: ""
+---
+
+# What is the Prototype Pattern?
+
+The Prototype pattern is a creational pattern that specifies the kinds of objects to create using a prototypical instance, and creates new objects by copying this prototype.
+
+It improves efficiency by copying existing instances when object creation is expensive or when creating many similar objects.
+
+## Why is Prototype Needed?
+
+Consider the following situation:
+
+> I'm developing a shape editor app and want users to be able to copy & paste shapes.
+> Shape objects have many properties like color, position, size, and texture, making initialization complex.
+> Recreating from scratch each time is inefficient.
+
+This problem occurs in various scenarios, such as cloning game characters, copying configuration objects, and duplicating database records.
+
+### Problematic Code
+
+Initializing through constructors every time is inefficient for complex objects.
+
+```typescript
+class Shape {
+  constructor(
+    public x: number,
+    public y: number,
+    public color: string,
+    public texture: string,
+    public borderWidth: number,
+    public opacity: number
+  ) {}
+}
+
+class Circle extends Shape {
+  constructor(
+    x: number,
+    y: number,
+    color: string,
+    texture: string,
+    borderWidth: number,
+    opacity: number,
+    public radius: number
+  ) {
+    super(x, y, color, texture, borderWidth, opacity);
+  }
+}
+
+// Usage: Need to re-specify all parameters to duplicate similar circles
+const circle1 = new Circle(100, 100, "red", "gradient", 2, 0.8, 50);
+const circle2 = new Circle(150, 150, "red", "gradient", 2, 0.8, 50); // Same except position
+const circle3 = new Circle(200, 200, "red", "gradient", 2, 0.8, 50); // Same except position
+```
+
+This example has the following problems:
+
+- Need to re-specify all parameters for each similar object
+- Many constructor parameters, prone to mistakes
+- Complex initialization logic (texture loading, etc.) executed every time
+- Hard to create "slightly modified copies" of existing objects
+
+### Solution with Prototype Pattern
+
+Clone existing objects and modify only necessary parts.
+
+```typescript
+interface Cloneable {
+  clone(): this;
+}
+
+class Shape implements Cloneable {
+  constructor(
+    public x: number,
+    public y: number,
+    public color: string,
+    public texture: string,
+    public borderWidth: number,
+    public opacity: number,
+  ) {}
+
+  clone(): this {
+    return Object.create(
+      Object.getPrototypeOf(this),
+      Object.getOwnPropertyDescriptors(this)
+    );
+  }
+
+  moveTo(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+class Circle extends Shape {
+  constructor(
+    x: number,
+    y: number,
+    color: string,
+    texture: string,
+    borderWidth: number,
+    opacity: number,
+    public radius: number
+  ) {
+    super(x, y, color, texture, borderWidth, opacity);
+  }
+}
+
+// Usage: Clone from prototype
+const prototype = new Circle(100, 100, "red", "gradient", 2, 0.8, 50);
+
+const circle1 = prototype.clone(); // Complete copy
+const circle2 = prototype.clone();
+circle2.moveTo(150, 150); // Change only position
+
+const circle3 = prototype.clone();
+circle3.moveTo(200, 200); // Change only position
+```
+
+This implementation provides the following improvements:
+
+- Complex initialization executed only once
+- Easy to create copies from existing objects
+- Only need to modify necessary parts
+- No need to re-specify constructor parameters
+
+💡 **Essence**
+
+The essence of the Prototype pattern is not about "copying objects."
+
+It is **"efficiently generating similar objects from existing instances, avoiding complex initialization."**
+
+## When to Use It?
+
+The Prototype pattern is effective in the following cases:
+
+| Use Case | Reason |
+| --- | --- |
+| Object creation cost is high | Execute database reads, complex calculations only once |
+| Creating many similar objects | Game enemy characters, particle effects |
+| Concrete class of object is unknown | Plugin systems, dynamically loaded objects |
+| Configuration duplication and customization | Application configuration templates |
+
+### Example: Shape Editor
+
+```typescript
+// Register template shapes
+class ShapeRegistry {
+  private prototypes = new Map<string, Cloneable>();
+
+  register(name: string, prototype: Cloneable) {
+    this.prototype.set(name, prototype);
+  }
+
+  create(name: string) Cloneable | undefined {
+    const prototype = this.prototype.set(name);
+    return prototype ? prototype.clone() : undefined;
+  }
+}
+
+const registry = new ShapeRegistry();
+
+// Register frequently used prototypes
+registry.register("redCircle", new Circle(0, 0, "red", "gradient", 2, 0.8, 50));
+
+// Clone when user copies & pastes
+const newCircle = registry.create("redCircle");
+```
+
+## When NOT to Use It?
+
+Using Prototype for the following reasons is incorrect.
+
+### Excessive Application to Simple Objects
+
+```typescript
+// ❌ Excessive
+class Point {
+  constructor(public x: number, public y: number) {}
+  clone(): { return new Point(this.x, this.y); }
+}
+```
+
+For simple objects with 1-2 properties, regular constructors are sufficient.
+
+### Application to Immutable Objects
+
+```typescript
+// ❌ Unnecessary
+class ImmutableConfig {
+  clone() { return this; } // No need to copy immutable objects
+}
+```
+
+Immutable objects don't need to be cloned. The same instance should be shared.
+
+### Objects Containing Circular References
+
+Deep copy becomes complex and risks stack overflow. The object structure should be reconsidered.
+
+💡 **Decision Criteria**
+
+- **High creation cost, frequently creating similar objects**: prototype
+- **Simple objects**: Regular constructor
+
+## Considerations When Using Prototype
+
+When adopting Prototype pattern, understand the following three considerations.
+
+### 1. Deep Copy Complexity
+
+Handling nested objects and circular references is difficult, making `clone()` implementation complex.
+Standard APIs like `structuredClone()` should be used whenever possible.
+
+### 2. Implementation Burden of clone() Method
+
+Every concrete class needs to implement the `clone()` method, increasing maintenance cost as classes grow.
+
+### 3. Prototype Visibility Issues
+
+It becomes unclear which objects are used as prototypes, risking accidental state sharing. Prototypes should be managed through a dedicated Registry.
+
+## Summary
+
+Prototype pattern is "a creational pattern that specifies the kinds of objects to create using a prototypical instance, and creates new objects by copying this prototype."
+
+💡 Key Points
+
+- **Reduced creation cost** - Complex initialization executed only once
+- **Flexibility** - Can dynamically select prototypes at runtime
+- **Understand deep copy complexity** - Consider using standard APIs
+- **Unnecessary for simple objects** - Regular constructors often sufficient
+
+Always consider whether "creation cost is really high" and "frequently creating similar objects."

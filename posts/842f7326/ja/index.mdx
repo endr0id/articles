@@ -1,0 +1,250 @@
+---
+title: "Prototypeとは?"
+description: "既存のオブジェクトをコピーして新しいインスタンスを生成するパターン"
+date: "2026-08-03"
+updatedDate: "2026-08-04"
+tags:
+  - "design-pattern"
+  - "GoF"
+  - "architecture"
+author: "endr0id"
+published: true
+heroImage: ""
+---
+
+# Prototypeパターンとは?
+
+Prototypeパターンはプロトタイプとなるインスタンスを使って生成するオブジェクトの種類を指定し、
+そのプロトタイプを複製することで新しいオブジェクトを生成する生成パターンです。
+
+オブジェクトの生成コストが高い場合や、類似したオブジェクトを大量に作成する場合に既存のインスタンスをコピーすることで効率化します。
+
+## なぜPrototypeが必要なのか
+
+次の様な状況を考えてみます。
+
+> 図形エディタアプリを開発しているがユーザーが図形をコピー&ペーストできるようにしたい。
+> 図形オブジェクトは色、位置、サイズ、テクスチャなど多くのプロパティを持ち、初期化が複雑。
+> 毎回ゼロから作り直すのは非効率。
+
+この問題はゲームキャラクターの複製、設定オブジェクトのコピー、データベースレコードのクローンなど、様々な場面で発生します。
+
+### 問題のあるコード
+
+コンストラクタで毎回初期化すると複雑なオブジェクトの生成が非効率的です。
+
+```typescript
+class Shape {
+  constructor(
+    public x: number,
+    public y: number,
+    public color: string,
+    public texture: string,
+    public borderWidth: number,
+    public opacity: number
+  ) {}
+}
+
+class Circle extends Shape {
+  constructor(
+    x: number,
+    y: number,
+    color: string,
+    texture: string,
+    borderWidth: number,
+    opacity: number,
+    public radius: number
+  ) {
+    super(x, y, color, texture, borderWidth, opacity);
+  }
+}
+
+// 使用例: 同じような円を複製するのに前パラメータを再指定
+const circle1 = new Circle(100, 100, "red", "gradient", 2, 0.8, 50);
+const circle2 = new Circle(150, 150, "red", "gradient", 2, 0.8, 50); // 位置以外同じ
+const circle3 = new Circle(200, 200, "red", "gradient", 2, 0.8, 50); // 位置以外同じ
+```
+
+この例では次の問題があります。
+
+- 類似オブジェクトを作るたびに全パラメータを再指定
+- コンストラクタのパラメータが多く、ミスしやすい
+- 複雑な初期化ロジック（テクスチャの読み込みなど）を毎回実行
+- 既存オブジェクトから「少しだけ変更した複製」を作りにくい
+
+### Prototypeパターンによる解決
+
+既存オブジェクトを複製し、必要な部分だけ変更します。
+
+```typescript
+interface Cloneable {
+  clone(): this;
+}
+
+class Shape implements Cloneable {
+  constructor(
+    public x: number,
+    public y: number,
+    public color: string,
+    public texture: string,
+    public borderWidth: number,
+    public opacity: number,
+  ) {}
+
+  clone(): this {
+    return Object.create(
+      Object.getPrototypeOf(this),
+      Object.getOwnPropertyDescriptors(this)
+    );
+  }
+
+  moveTo(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+class Circle extends Shape {
+  constructor(
+    x: number,
+    y: number,
+    color: string,
+    texture: string,
+    borderWidth: number,
+    opacity: number,
+    public radius: number
+  ) {
+    super(x, y, color, texture, borderWidth, opacity);
+  }
+}
+
+// 使用例: プロトタイプから複製
+const prototype = new Circle(100, 100, "red", "gradient", 2, 0.8, 50);
+
+const circle1 = prototype.clone(); // 完全なコピー
+const circle2 = prototype.clone();
+circle2.moveTo(150, 150); // 位置だけ変更
+
+const circle3 = prototype.clone();
+circle3.moveTo(200, 200); // 位置だけ変更
+```
+
+この実装では次のことが改善されます。
+
+- 複雑な初期化を一度だけ実行
+- 既存オブジェクトから簡単に複製を作成
+- 必要な部分だけを変更すれば良い
+- コンストラクタのパラメータを再指定する必要がない
+
+💡 **本質**
+
+Prototypeパターンの本質は「オブジェクトをコピーする」ことではありません。
+
+「複雑な初期化を避け、既存インスタンスから効率的に類似オブジェクトを生成すること」です。
+
+## いつ使うか?
+
+Prototypeパターンは次のような場合に有効です。
+
+| 使用場面 | 理由 |
+| --- | --- |
+| オブジェクトの生成コストが高い | DB読み込み、複雑な計算を一度だけ実行 |
+| 類似したオブジェクトを大量に作成 | ゲームの敵キャラクター、粒子エフェクト |
+| オブジェクトの具体的なクラスがわからない | プラグインシステム、動的にロードされるオブジェクト |
+| 設定の複製とカスタマイズ | アプリケーション設定のテンプレート |
+
+### 具体例: 図形エディタ
+
+```typescript
+// テンプレート図形を登録
+class ShapeRegistry {
+  private prototypes = new Map<string, Cloneable>();
+
+  register(name: string, prototype: Cloneable) {
+    this.prototype.set(name, prototype);
+  }
+
+  create(name: string) Cloneable | undefined {
+    const prototype = this.prototype.set(name);
+    return prototype ? prototype.clone() : undefined;
+  }
+}
+
+const registry = new ShapeRegistry();
+
+// よく使う設定のプロトタイプを登録
+registry.register("redCircle", new Circle(0, 0, "red", "gradient", 2, 0.8, 50));
+
+// ユーザーがコピー&ペーストする際に複製
+const newCircle = registry.create("redCircle");
+```
+
+## いつ使わないか?
+
+次のような理由でPrototypeを使うのは誤りです。
+
+### 単純なオブジェクトへの過剰適用
+
+```typescript
+// ❌ 過剰
+class Point {
+  constructor(public x: number, public y: number) {}
+  clone(): { return new Point(this.x, this.y); }
+}
+```
+
+プロパティが1-2個の単純なオブジェクトには通常のコンストラクタで十分です。
+
+### 普遍オブジェクトへの適用
+
+```typescript
+// ❌ 不要
+class ImmutableConfig {
+  clone() { return this; } // 不変なのでコピー不要
+}
+```
+
+不変オブジェクトは複製する必要がありません。
+同じインスタンスを共有すべきです。
+
+### 循環参照を含むオブジェクト
+
+深いコピーが複雑になり、スタックオーバーフローのリスクがあります。
+オブジェクト構造を見直すべきです。
+
+💡 **判断基準**
+
+- 生成コストが高く、類似オブジェクトを頻繁に作成: Prototype
+- 単純なオブジェクト: 通常のコンストラクタ
+
+## 使う場合の注意点
+
+Prototypeパターンを採用する場合、次の3つの注意点を理解しておく必要があります。
+
+### 1. 深いコピーの複雑さ
+
+ネストしたオブジェクトや循環参照の処理が難しく、`clone()` の実装が複雑になります。
+可能な限り `structuredClone()` などの標準APIを活用すべきです。
+
+### 2. clone()メソッドの実装負担
+
+全ての具象クラスで `clone()` メソッドを実装する必要があり、クラスが増えるとメンテナンスコストが上がります。
+
+### 3. プロトタイプの可視性問題
+
+どのオブジェクトがプロトタイプとして使われるか不明確になりやすく、誤って状態を共有してしまうリスクがあります。
+
+プロトタイプ専用のRegistryで管理すべきです。
+
+## まとめ
+
+Prototypeパターンは「プロトタイプとなるインスタンスを使って生成するオブジェクトの種類を指定し、そのプロトタイプを複製することで新しいオブジェクトを生成する生成パターン」です。
+
+💡 ポイント
+
+- **生成コストの削減** - 複雑な初期化を一度だけ実行
+- **柔軟性** - 実行時に動的にプロトタイプを選択可能
+- **深いコピーの複雑さを理解** - 標準APIの活用を検討
+- **単純なオブジェクトには不要** - 通常のコンストラクタで十分な場合が多い
+
+「本当に生成コストが高いか」「類似オブジェクトを頻繁に作成するか」を常に検討すべきです。
