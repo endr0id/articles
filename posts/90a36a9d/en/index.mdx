@@ -1,0 +1,390 @@
+---
+title: ""
+description: ""
+date: "2026-08-06"
+updatedDate: "2026-08-06"
+tags:
+  -
+author: ""
+published: false
+heroImage: ""
+---
+
+# What is the Adapter Pattern?
+
+The Adapter pattern is a **structural pattern that converts the interface of a class into another interface clients expect.**
+
+Adapter lets classes work together that couldn't otherwise because of incompatible interfaces.
+
+## Why is Adapter Needed?
+
+Consider the following situation:
+
+> "The legacy API used in our existing inventory management system returns data in an old format, but our new frontend application
+> expects modern JSON format. We cannot modify the lecacy API code"
+
+This problem occurs in various scenarios: thrd-party library integration, legacy system integration, conversion between different data formats, and more.
+
+### Problematic Code
+
+When an existing class's interface differs from expectations, it cannot be used directly.
+
+```typescript
+// Legacy API (cannot be modified)
+class LegacyInventoryAPI {
+  getInventoryData(): string {
+    // Returns CSV format
+    return "item1,100,50\nitem2,200,30\nitem3,150,75";
+  }
+}
+
+// Interface expected by new application
+interface ModernInventoryAPI {
+  getInventory(): InventoryItem[];
+}
+
+interface InventoryItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+// Client code
+class InventoryApp {
+  constructor(private api: ModernInventoryAPI) {}
+
+  displayInventory(): void {
+    const items = this.api.getInventory();
+    items.forEach(item => {
+      console.log(`${item.name}: ${item.quantity}個, ￥${item.price}`);
+    });
+  }
+}
+
+// Problem: LegacyInventoryAPI is incompatible with ModernInventoryAPI
+// const app = new InventoryApp(new LegacyInventoryAPI()); // Type error
+```
+
+This example has the following problems:
+
+- LegacyInventoryAPI's interface differs from ModernInventoryAPI
+- LegacyInventoryAPI cannot be modified (third-party, legacy code)
+- Client (InventoryApp) depends on ModernInventoryAPI
+- Cannot integrate directly, requiring large-scale rewriting
+
+### Solution with Adapter Pattern
+
+Wrap the existing class to match the expected interface.
+
+```typescript
+// Legacy API (cannnot be modified)
+class LegacyInventoryAPI {
+  getInventoryData(): string {
+    return "item1,100,50\nitem2,200,30\nitem3,150,75";
+  }
+}
+
+// Expected interface
+interface ModernInventoryAPI {
+  getInventory(): InventoryItem[];
+}
+
+interface InventoryItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+// Adapter: Adapts LegacyAPI to MOdernAPI
+class InventoryAPIAdapter implements ModernInventoryAPI {
+  constructor(private legacyAPI: LegacyInventoryAPI) {}
+
+  getInventory(): InventoryItem[] {
+    // Parse CSV format and convert to JSON format
+    const csvData = this.legacyAPI.getInventoryData();
+    const lines = csvData.split("\n");
+
+    return lines.map((line) => {
+      const [name, quantity, price] = line.split[","];
+      return {
+        name,
+        quantity: parseInt(quantity, 10),
+        price: parseInt(price, 10),
+      };
+    });
+  }
+}
+
+// Client code
+class InventoryApp {
+  constructor(private api: ModernInventoryAPI) {}
+
+  displayInventory(): void {
+    const items = this.api.getInventory();
+    items.forEach((item) => {
+      console.log(`${item.name}: ${item.quantity}個, ￥${item.price}`);
+    });
+  }
+}
+
+// Usage
+const legacyAPI = new LegacyInventoryAPI();
+const adapter = new InventoryAPIAdapter(legacyAPI);
+const app = new InventoryApp(adapter);
+
+app.displayInventory();
+// Output:
+// item1: 100 units, $50
+// item2: 200 units, $30
+// item3: 150 units, $75
+```
+
+This implementation provides the following improvements:
+
+- Adapts LegacyAPI to new interface without modification
+- Client code also requires no changes
+- Conversion logic is centralized in Adapter
+- Adapter can be replaced with mock during testing
+
+💡 **Essence**
+
+The essence of the Adapter pattern is not "converting."
+
+**It's "enabling classes with incompatible interfaces to collaborate without modifying existing code."**
+
+## When to Use?
+
+The Adapter pattern is effective in the following cases:
+| Use Case | Reason |
+| --- | --- |
+| Legacy code integration | Integrate with new system without modifying existing code |
+| Third-party library integration | Adapt external library interface to company standards |
+| Conversion between different data formats | Unify formats like CSV/JSON/XML |
+| Handle multiple implementations with unified interface | Abstract different APIs with same interface |
+
+
+## When NOT to Use?
+
+Using Adapter for the following reasons is incorrect.
+
+### When Adaptee Can Be Modified
+
+```typescript
+// Bad example: Using Adapter for modifiable class
+class MyDataSource {
+  fetchData(): string[] {
+    return ["data1", "data2"];
+  }
+}
+
+interface DataProvider {
+  getData(): string[];
+}
+
+// No need to create Adapter
+class DataSourceAdapter implements DataProvider {
+  constructor(private source: MyDataSource) {}
+
+  getData(): string[] {
+    return this.source.fetchData();
+  }
+}
+```
+
+This usage has the following problems:
+
+- Adding complexity with Adapter when MyDataSource can be directly modified
+- Unnecessary indirection layer added
+- Simple refactoring suffices if just renaming methods
+
+💡 **Principle**
+
+Use Adapter for "code that cannot be modified" or "code you don't want to modify."
+
+If you manage the code, modify it directly.
+
+```typescript
+// Good example: implement interface directly
+class MyDataSource implements DataProvider {
+  getData(): string[] {
+    return ["data1", "data2"];
+  }
+}
+```
+
+### When Simple Function Wrapper Suffices
+
+```typescript
+// Excessive: Using class for simple conversion
+class StringFormatter {
+  format(value: string): string {
+    return value.toUpperCase();
+  }
+}
+
+interface Formatter {
+  transform(input: string): string;
+}
+
+class StringFormatterAdapter implements Formatter {
+  constructor(private formatter: StringFormatter) {}
+
+  transform(input: string): string {
+    return this.formatter.format(input);
+  }
+}
+
+// Recommended: Simple function suffices
+function adaptStringFOrmatter(formatter: StringFormatter): Formatter {
+  return {
+    transform: (input: string) => formatter.format(input)
+  };
+}
+```
+
+### When Interfaces Are Completely Different
+
+```typescript
+// Bad example: Forcing interface compatibility
+interface ImageProcessor {
+  processImage(image: Image): ProcessedImage;
+}
+
+interface TextAnalyzer {
+  analyzeText(text: string): AnalysisResult;
+}
+
+// Semantically completely different, Adapter is inappropriate
+class TextToImageAdapter implements ImageProcessor {
+  constructor(private textAnalyzer: TextAnalyzer) {}
+
+  processImage(image: Image): ProcessedImage {
+    // Forced conversion (meaningless)
+    const text = image.extractText();
+    this.textAnalyzer.analyzeText(text);
+    // ...
+  }
+}
+```
+
+Adapter is for classes with "same purpose but different interfaces."
+
+Don't force adaptation of classes with completely different responsibilities.
+
+## Considerations When Using
+
+Even when adopting Adapter pattern, understand the following trade-offs.
+
+### Increased Indirection
+
+Using Adapter increases call hierarchy.
+
+```typescript
+// Client -> Adapter -> Adaptee
+const result = adapter.request(); // Adapter経由
+// Internally: adaptee.specificRequest();
+```
+
+Trade-offs:
+
+- **Benefits**: Interface unification, existing code protection
+- **Drawbacks**: Slight performance overhead, debugging complexity
+
+💡 **Decision Criteria**
+
+- **Cannot modify existing code** -> Adapter
+- **Want to unify interface** -> Adapter
+- **Only simple conversion** -> Function suffices
+
+### High Conversion Cost
+
+```typescript
+// Bad example: Heavy conversion processing every time
+class HeavyDataAdapter implements ModernAPI {
+  constructor(private legacyAPI: LegacyAPI) {}
+
+  getData(): Data[] {
+    const rowData = this.legacyAPI.getRawData();
+
+    // Heavy conversion processing every time
+    return this.expensiveConversion(rawData);
+  }
+
+  private expensiveConversion(raw: string): Data[] {
+    // Complex parsing, calculation, conversion...
+  }
+}
+```
+
+As a countermeasure, add caching or memoization.
+
+```typescript
+// Improved: Reduce conversion cost with caching
+class HeavyDataAdapter implements ModernAPI {
+  private cache: Data[] | null = null;
+
+  constructor(private legacyAPI: LegacyAPI) {}
+
+  getData(): Data[] {
+    if (!this.cache) {
+      const rowData = this.legacyAPI.getRawData();
+      this.cache = this.expensiveConversion(rawData);
+    }
+    return this.cache;
+  }
+}
+```
+
+### When Bidirectional Conversion Needed
+
+```typescript
+// Adapter typically provides only one-way conversion
+class Adapter implements Target {
+  constructor(private adaptee: Adaptee) {}
+
+  request(): void {
+    this.adaptee.specificRequest(); // Target -> Adaptee
+  }
+
+  // Problem: Reverse conversion Adaptee -> Target requires separate implementation
+}
+```
+
+When bidirectional conversion is needed, consider **Two-way Adapter.**
+
+```typescript
+class TwoWayAdapter implements Target, Adaptee {
+  private target: Target;
+  private adaptee: Adaptee;
+
+  constructor(target: Target, adaptee: Adaptee) {
+    this.target = target;
+    this.adaptee = adaptee;
+  }
+
+  // Target -> Adaptee
+  specificRequest(): void {
+    this.target.request();
+  }
+
+  // Adaptee -> Target
+  request(): void {
+    this.adaptee.specificRequest();
+  }
+}
+```
+
+However, two-way Adapters become complex and should be used carefully.
+
+## Summary
+
+The Adapter pattern is "a structural pattern that converts the interface of a class into another interface clients expect."
+
+💡 **Key Points**
+
+- **Use for code that cannot be modified** - Modify your own code directly
+- **Interface unification** - Handle different APIs with same interface
+- **Protect existing code** - Integrate legacy code or third-party without modification
+- **Use appropriately** - Simple functions suffice for simple conversions
+
+Always consider "Can we really not modify existing code?" and "Can we solve with simple functions?"
